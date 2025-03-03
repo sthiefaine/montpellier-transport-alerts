@@ -43,11 +43,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(alerts);
+    return new Response(JSON.stringify(alerts));
   } catch (error) {
     console.error('Erreur lors de la récupération des alertes:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la récupération des alertes' },
+    return new Response(
+      JSON.stringify(
+      { error: 'Erreur lors de la récupération des alertes' }),
       { status: 500 }
     );
   }
