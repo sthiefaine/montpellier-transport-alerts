@@ -1,0 +1,13 @@
+{
+  "regions": ["cdg1"],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "*/2 4-23 * * *"
+    },
+    {
+      "path": "/api/cron",
+      "schedule": "*/10 0-4 * * *"
+    }
+  ]
+}
