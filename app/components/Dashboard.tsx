@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { AlertCircle, AlertTriangle, Clock, RefreshCw, History } from 'lucide-react';
 import { AlertStats, AlertEffect } from '@/lib/types';
 import { getAlertEffectLabel } from '@/lib/utils';
+import IncidentCalendar from './IncidentCalendar';
 
 // Couleurs pour le graphique
 const COLORS = [
@@ -181,6 +182,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <IncidentCalendar />
       
       {/* Graphique de répartition des effets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

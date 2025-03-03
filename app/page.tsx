@@ -42,7 +42,7 @@ export default function HomePage() {
   return (
     <div className="container">
       <h1 className="font-bold mb-2 text-center">
-        Transport en Commun - Montpellier
+        Transports en Commun - Montpellier
       </h1>
 
       {/* Onglets */}
