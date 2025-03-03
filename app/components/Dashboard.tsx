@@ -25,7 +25,7 @@ const COLORS = [
 
 export default function Dashboard() {
   const { data: stats, error, isLoading } = useSWR<AlertStats>('/api/alerts/stats', fetcher, {
-    refreshInterval: 5 * 60 * 1000, // Rafraîchir toutes les 5 minutes
+    refreshInterval: 2 * 60 * 1000, // Rafraîchir toutes les 5 minutes
   });
 
   if (isLoading) {

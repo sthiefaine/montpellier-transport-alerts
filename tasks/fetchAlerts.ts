@@ -11,7 +11,7 @@ const ALERT_URL =
 // Chemin vers le fichier proto
 const PROTO_PATH = path.join(
   process.cwd(),
-  "src/lib/proto/gtfs-realtime.proto"
+  "lib/gtfs-realtime.proto"
 );
 
 // Fonction pour télécharger le fichier d'alertes
