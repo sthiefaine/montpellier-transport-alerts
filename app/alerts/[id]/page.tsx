@@ -1,28 +1,58 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import useSWR from 'swr';
-import { Alert } from '@/lib/types';
-import { formatDate, getAlertCauseLabel, getAlertEffectLabel, getAlertColor } from '@/lib/utils';
-import { AlertCircle, Calendar, Clock, ArrowLeft, MapPin, Bus, AlertTriangle, ExternalLink } from 'lucide-react';
+import { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import useSWR from "swr";
+import { Alert } from "@/lib/types";
+import {
+  formatDate,
+  getAlertCauseLabel,
+  getAlertEffectLabel,
+  getAlertColor,
+} from "@/lib/utils";
+import {
+  AlertCircle,
+  Calendar,
+  Clock,
+  ArrowLeft,
+  MapPin,
+  Bus,
+  AlertTriangle,
+  ExternalLink,
+  RefreshCw,
+} from "lucide-react";
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = (url: string) =>
+  fetch(`${url}?t=${new Date().getTime()}`).then((res) => res.json());
 
 export default function AlertDetailPage() {
   const params = useParams();
   const id = params?.id as string;
 
-  const { data: alert, error, isLoading } = useSWR<Alert>(
-    id ? `/api/alerts/${id}` : null,
-    fetcher
-  );
+  const {
+    data: alert,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<Alert>(id ? `/api/alerts/${id}` : null, fetcher, {
+    refreshInterval: 120 * 1000,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    dedupingInterval: 5000,
+    errorRetryCount: 1,
+  });
+
+  const handleRefresh = () => {
+    mutate();
+  };
 
   if (isLoading) {
     return (
       <div className="container">
-        <div className="text-center py-8">Chargement des détails de l'alerte...</div>
+        <div className="text-center py-8">
+          Chargement des détails de l'alerte...
+        </div>
       </div>
     );
   }
@@ -31,10 +61,16 @@ export default function AlertDetailPage() {
     return (
       <div className="container">
         <div className="text-center py-8 text-red-500">
-          Erreur lors du chargement de l'alerte. Veuillez réessayer plus tard.
+          Erreur lors du chargement de l'alerte.
+          <button onClick={handleRefresh} className="ml-2 underline">
+            Réessayer
+          </button>
         </div>
         <div className="text-center">
-          <Link href="/alerts" className="inline-flex items-center text-blue-600 hover:underline">
+          <Link
+            href="/alerts"
+            className="inline-flex items-center text-blue-600 hover:underline"
+          >
             <ArrowLeft className="w-4 h-4 mr-1" /> Retour à la liste des alertes
           </Link>
         </div>
@@ -45,9 +81,14 @@ export default function AlertDetailPage() {
   if (!alert) {
     return (
       <div className="container">
-        <div className="text-center py-8 text-gray-500">Alerte non trouvée.</div>
+        <div className="text-center py-8 text-gray-500">
+          Alerte non trouvée.
+        </div>
         <div className="text-center">
-          <Link href="/alerts" className="inline-flex items-center text-blue-600 hover:underline">
+          <Link
+            href="/alerts"
+            className="inline-flex items-center text-blue-600 hover:underline"
+          >
             <ArrowLeft className="w-4 h-4 mr-1" /> Retour à la liste des alertes
           </Link>
         </div>
@@ -57,13 +98,30 @@ export default function AlertDetailPage() {
 
   return (
     <div className="container">
-      <Link href="/alerts" className="inline-flex items-center text-blue-600 hover:underline mb-4">
-        <ArrowLeft className="w-4 h-4 mr-1" /> Retour à la liste des alertes
-      </Link>
-      
-      <div className={`border-l-4 p-6 rounded-md shadow ${getAlertColor(alert.effect)}`}>
+      <div className="flex justify-between items-center mb-4">
+        <Link
+          href="/alerts"
+          className="inline-flex items-center text-blue-600 hover:underline"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" /> Retour à la liste des alertes
+        </Link>
+
+        <button
+          onClick={handleRefresh}
+          className="flex items-center text-blue-500 hover:text-blue-700"
+        >
+          <RefreshCw className="w-4 h-4 mr-1" />
+          Rafraîchir
+        </button>
+      </div>
+
+      <div
+        className={`border-l-4 p-6 rounded-md shadow ${getAlertColor(
+          alert.effect
+        )}`}
+      >
         <h1 className="text-2xl font-bold mb-4">{alert.headerText}</h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 mb-6">
           <div className="flex items-center">
             <Calendar className="w-5 h-5 mr-2" />
@@ -72,7 +130,7 @@ export default function AlertDetailPage() {
               <div>{formatDate(alert.timeStart)}</div>
             </div>
           </div>
-          
+
           <div className="flex items-center">
             <Calendar className="w-5 h-5 mr-2" />
             <div>
@@ -80,7 +138,7 @@ export default function AlertDetailPage() {
               <div>{formatDate(alert.timeEnd)}</div>
             </div>
           </div>
-          
+
           <div className="flex items-center">
             <AlertTriangle className="w-5 h-5 mr-2" />
             <div>
@@ -88,7 +146,7 @@ export default function AlertDetailPage() {
               <div>{getAlertCauseLabel(alert.cause as any)}</div>
             </div>
           </div>
-          
+
           <div className="flex items-center">
             <AlertCircle className="w-5 h-5 mr-2" />
             <div>
@@ -96,35 +154,35 @@ export default function AlertDetailPage() {
               <div>{getAlertEffectLabel(alert.effect as any)}</div>
             </div>
           </div>
-          
+
           {alert.routeIds && (
             <div className="flex items-center">
               <Bus className="w-5 h-5 mr-2" />
               <div>
                 <span className="font-semibold">Lignes concernées:</span>
-                <div>{alert.routeIds.split(',').join(', ')}</div>
+                <div>{alert.routeIds.split(",").join(", ")}</div>
               </div>
             </div>
           )}
-          
+
           {alert.stopIds && (
             <div className="flex items-center">
               <MapPin className="w-5 h-5 mr-2" />
               <div>
                 <span className="font-semibold">Arrêts concernés:</span>
-                <div>{alert.stopIds.split(',').join(', ')}</div>
+                <div>{alert.stopIds.split(",").join(", ")}</div>
               </div>
             </div>
           )}
         </div>
-        
+
         <div className="mt-6">
           <h2 className="text-lg font-semibold mb-2">Description détaillée</h2>
           <div className="bg-white bg-opacity-50 p-4 rounded whitespace-pre-line">
             {alert.descriptionText}
           </div>
         </div>
-        
+
         {alert.url && (
           <div className="mt-6">
             <a
@@ -137,7 +195,7 @@ export default function AlertDetailPage() {
             </a>
           </div>
         )}
-        
+
         <div className="mt-8 text-sm text-gray-500">
           <div>ID de l'alerte: {alert.id}</div>
           <div>Dernière mise à jour: {formatDate(alert.updatedAt)}</div>

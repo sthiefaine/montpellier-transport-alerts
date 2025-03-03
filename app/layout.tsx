@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
+import { SWRConfig } from "swr";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,7 +42,7 @@ export default function RootLayout({
                   <p className="text-gray-600 text-sm">
                     Données fournies par{' '}
                     <a
-                      href="https://data.montpellier3m.fr/dataset/offre-de-transport-tam-en-temps-reel"
+                      href="https://data.montpellier3m.fr/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-500 hover:underline"

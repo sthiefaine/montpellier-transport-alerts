@@ -47,6 +47,8 @@ export enum AlertEffect {
 // Types pour les statistiques
 export interface AlertStats {
   activeCount: number;
+  completedCount: number;
+  totalCount: number;
   effectCounts: EffectCount[];
   topRoutes: RouteCount[];
 }
@@ -64,6 +66,7 @@ export interface RouteCount {
 // Types pour les filtres
 export interface AlertFilters {
   active?: boolean;
+  completed?: boolean;
   route?: string;
   stop?: string;
 }

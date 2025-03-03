@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { AlertCircle, AlertTriangle, Clock } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Clock, RefreshCw, History } from 'lucide-react';
 import { AlertStats, AlertEffect } from '@/lib/types';
 import { getAlertEffectLabel } from '@/lib/utils';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 // Couleurs pour le graphique
 const COLORS = [
@@ -22,76 +20,162 @@ const COLORS = [
   '#A800C8', // Magenta
   '#C8006B', // Rose
 ];
+const fetcher = async (url: string) => {
+  console.log(`Fetching data from: ${url} at`, new Date().toLocaleTimeString());
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Erreur lors du fetch");
+  return res.json();
+};
 
 export default function Dashboard() {
-  const { data: stats, error, isLoading } = useSWR<AlertStats>('/api/alerts/stats', fetcher, {
-    refreshInterval: 2 * 60 * 1000, // Rafraîchir toutes les 5 minutes
-  });
+  const [showAllStats, setShowAllStats] = useState<boolean>(false);
+  
+  // Construction de l'URL avec le paramètre pour toutes les alertes
+  const statsUrl = showAllStats 
+    ? '/api/alerts/stats/summary?includeAll=true' 
+    : '/api/alerts/stats/summary';
+  
+  // SWR avec configuration globale
+  const { data: stats, error, isLoading, mutate } = useSWR<AlertStats>(
+    statsUrl,
+    fetcher,
+    {
+      refreshInterval: 2*60*1000,
+      revalidateOnMount: true,
+    }
+  );
+
+  const handleRefresh = () => {
+    mutate();
+  };
 
   if (isLoading) {
-    return <div className="text-center py-8">Chargement des statistiques...</div>;
+    return <div className="text-center py-4">Chargement des statistiques...</div>;
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-500">
-      Erreur lors du chargement des statistiques. Veuillez réessayer plus tard.
-    </div>;
+    return (
+      <div className="text-center py-4 text-red-500">
+        <div>Erreur lors du chargement des statistiques:</div>
+        <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
+          {JSON.stringify(error, null, 2)}
+        </pre>
+        <button onClick={handleRefresh} className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm">
+          Réessayer
+        </button>
+      </div>
+    );
   }
 
   if (!stats) {
-    return <div className="text-center py-8 text-gray-500">Aucune donnée disponible.</div>;
+    return (
+      <div className="text-center py-4 text-gray-500">
+        Aucune donnée disponible.
+        <div className="mt-2">
+          <button onClick={handleRefresh} className="px-3 py-1 bg-blue-500 text-white rounded text-sm">
+            Rafraîchir
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Préparation des données pour le graphique circulaire
-  const effectData = stats.effectCounts.map((item, index) => ({
-    name: getAlertEffectLabel(item.effect as AlertEffect),
-    value: item.count,
-    color: COLORS[index % COLORS.length],
-  }));
+  const effectData = stats.effectCounts && Array.isArray(stats.effectCounts) 
+    ? stats.effectCounts.map((item, index) => ({
+        name: getAlertEffectLabel(item.effect as AlertEffect),
+        value: item.count,
+        color: COLORS[index % COLORS.length],
+      }))
+    : [];
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        {/* Sélecteur de mode de statistiques */}
+        <div className="flex space-x-2">
+          <button
+            className={`px-3 py-1 rounded-md text-sm ${
+              !showAllStats
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            onClick={() => setShowAllStats(false)}
+          >
+            Alertes actives uniquement
+          </button>
+          <button
+            className={`px-3 py-1 rounded-md text-sm ${
+              showAllStats
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            onClick={() => setShowAllStats(true)}
+          >
+            Toutes les alertes
+          </button>
+        </div>
+        
+        {/* Bouton de rafraîchissement */}
+        <button 
+          onClick={handleRefresh}
+          className="flex items-center text-blue-500 hover:text-blue-700 text-sm"
+        >
+          <RefreshCw className="w-3 h-3 mr-1" />
+          Rafraîchir
+        </button>
+      </div>
+
+      {/* Première rangée - 4 cartes plus petites */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Carte pour le nombre d'alertes actives */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3">
           <div className="flex items-center">
-            <AlertCircle className="w-8 h-8 text-red-500 mr-3" />
+            <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
             <div>
-              <h3 className="text-gray-500 text-sm">Alertes actives</h3>
-              <p className="text-3xl font-bold">{stats.activeCount}</p>
+              <h3 className="text-gray-500 text-xs">Alertes actives</h3>
+              <p className="text-xl font-bold">{stats.activeCount}</p>
             </div>
           </div>
         </div>
         
-        {/* Carte pour l'alerte la plus commune */}
-        <div className="bg-white rounded-lg shadow p-6">
+        {/* Carte pour les alertes terminées */}
+        <div className="bg-white rounded-lg shadow p-3">
           <div className="flex items-center">
-            <AlertTriangle className="w-8 h-8 text-orange-500 mr-3" />
+            <History className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
             <div>
-              <h3 className="text-gray-500 text-sm">Type d'alerte le plus courant</h3>
-              {stats.effectCounts.length > 0 ? (
-                <p className="text-xl font-bold">
+              <h3 className="text-gray-500 text-xs">Alertes terminées</h3>
+              <p className="text-xl font-bold">{stats.completedCount || 0}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Carte pour le nombre total d'alertes */}
+        <div className="bg-white rounded-lg shadow p-3">
+          <div className="flex items-center">
+            <Clock className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
+            <div>
+              <h3 className="text-gray-500 text-xs">Total alertes</h3>
+              <p className="text-xl font-bold">{stats.totalCount || (stats.activeCount + (stats.completedCount || 0))}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Carte pour le type d'alerte le plus courant */}
+        <div className="bg-white rounded-lg shadow p-3">
+          <div className="flex items-center">
+            <AlertTriangle className="w-5 h-5 text-orange-500 mr-2 flex-shrink-0" />
+            <div>
+              <h3 className="text-gray-500 text-xs">
+                Type le plus courant
+                {showAllStats ? ' (toutes)' : ' (actives)'}
+              </h3>
+              {stats.effectCounts && stats.effectCounts.length > 0 ? (
+                <p className="text-sm font-bold truncate max-w-full">
                   {getAlertEffectLabel(stats.effectCounts[0].effect as AlertEffect)}
                 </p>
               ) : (
-                <p className="text-xl">Aucune donnée</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Carte pour les routes les plus affectées */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <Clock className="w-8 h-8 text-blue-500 mr-3" />
-            <div>
-              <h3 className="text-gray-500 text-sm">Routes les plus affectées</h3>
-              {stats.topRoutes.length > 0 ? (
-                <p className="text-xl font-bold">
-                  {stats.topRoutes[0].routeIds.split(',').join(', ')}
-                </p>
-              ) : (
-                <p className="text-xl">Aucune donnée</p>
+                <p className="text-sm">Aucune donnée</p>
               )}
             </div>
           </div>
@@ -99,63 +183,111 @@ export default function Dashboard() {
       </div>
       
       {/* Graphique de répartition des effets */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-bold mb-4">Répartition des alertes par type d'effet</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="bg-white rounded-lg shadow p-3">
+          <h3 className="text-sm font-bold mb-2">
+            Répartition des alertes par type
+            {showAllStats ? ' (toutes)' : ' (actives)'}
+          </h3>
+          
+          {effectData.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                  <Pie
+                    data={effectData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={65}
+                    fill="#8884d8"
+                    dataKey="value"
+                    nameKey="name"
+                    // Suppression des labels sur le graphique lui-même
+                  >
+                    {effectData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} alertes`, name]}
+                    contentStyle={{ fontSize: '12px' }}
+                  />
+                  <Legend 
+                    layout="vertical" 
+                    verticalAlign="middle" 
+                    align="right"
+                    wrapperStyle={{ fontSize: '12px', paddingLeft: '10px' }}
+                    formatter={(value, entry, index) => (
+                      <span style={{ color: entry.color }}>
+                        {value}: {entry.payload?.value} ({((entry.payload?.value / effectData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(0)}%)
+                      </span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500 text-sm">
+              Aucune donnée disponible pour le graphique.
+              {!showAllStats && stats.activeCount === 0 && (
+                <div className="mt-1">
+                  <p>Il n'y a aucune alerte active actuellement.</p>
+                  <button 
+                    onClick={() => setShowAllStats(true)} 
+                    className="mt-1 text-blue-500 underline text-xs"
+                  >
+                    Afficher toutes les alertes à la place
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         
-        {effectData.length > 0 ? (
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={effectData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} : ${(percent * 100).toFixed(0)}%`}
-                >
-                  {effectData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [`${value} alertes`, name]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">Aucune donnée disponible pour le graphique.</div>
-        )}
-      </div>
-      
-      {/* Liste des routes les plus affectées */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-bold mb-4">Routes les plus affectées</h3>
-        
-        {stats.topRoutes.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="py-2 px-4 text-left">Routes</th>
-                  <th className="py-2 px-4 text-right">Nombre d'alertes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.topRoutes.map((route, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="py-2 px-4">{route.routeIds.split(',').join(', ')}</td>
-                    <td className="py-2 px-4 text-right">{route.count}</td>
+        {/* Liste des routes les plus affectées */}
+        <div className="bg-white rounded-lg shadow p-3">
+          <h3 className="text-sm font-bold mb-2">
+            Routes les plus affectées
+            {showAllStats ? ' (toutes)' : ' (actives)'}
+          </h3>
+          
+          {stats.topRoutes && stats.topRoutes.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="py-2 px-2 text-left font-medium">Routes</th>
+                    <th className="py-2 px-2 text-right w-16 font-medium">Nombre</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500">Aucune donnée disponible.</div>
-        )}
+                </thead>
+                <tbody>
+                  {stats.topRoutes.map((route, index) => (
+                    <tr key={index} className={index < stats.topRoutes.length - 1 ? "border-b" : ""}>
+                      <td className="py-2 px-2 text-sm font-medium">{route.routeIds.split(',').join(', ')}</td>
+                      <td className="py-2 px-2 text-right text-sm font-bold">{route.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-3 text-gray-500 text-sm">
+              Aucune donnée disponible.
+              {!showAllStats && stats.activeCount === 0 && (
+                <div className="mt-1">
+                  <p>Il n'y a aucune alerte active actuellement.</p>
+                  <button 
+                    onClick={() => setShowAllStats(true)} 
+                    className="mt-1 text-blue-500 underline text-xs"
+                  >
+                    Afficher toutes les alertes à la place
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
