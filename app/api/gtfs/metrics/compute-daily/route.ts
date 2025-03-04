@@ -27,13 +27,16 @@ export async function GET(request: Request) {
 
     // Par défaut, calculer pour hier (paramètre date optionnel pour recalculer un jour spécifique)
     const url = new URL(request.url);
-    const dateParam = url.searchParams.get('date');
-    
+    const dateParam = url.searchParams.get("date");
+
     let targetDate: Date;
     if (dateParam) {
       targetDate = new Date(dateParam);
       if (isNaN(targetDate.getTime())) {
-        return NextResponse.json({ error: "Format de date invalide" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Format de date invalide" },
+          { status: 400 }
+        );
       }
     } else {
       // Calculer pour hier par défaut
@@ -42,8 +45,8 @@ export async function GET(request: Request) {
     }
 
     // Formater la date pour les comparaisons SQL
-    const dateString = targetDate.toISOString().split('T')[0];
-    
+    const dateString = targetDate.toISOString().split("T")[0];
+
     // Début et fin de la journée ciblée
     const startDate = new Date(`${dateString}T00:00:00Z`);
     const endDate = new Date(`${dateString}T23:59:59.999Z`);
@@ -58,9 +61,12 @@ export async function GET(request: Request) {
     `;
 
     if (!Array.isArray(routesWithData) || routesWithData.length === 0) {
-      return NextResponse.json({ 
-        message: "Aucune donnée disponible pour cette journée" 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          message: "Aucune donnée disponible pour cette journée",
+        },
+        { status: 404 }
+      );
     }
 
     console.log(`Trouvé ${routesWithData.length} lignes avec des données`);
@@ -72,7 +78,7 @@ export async function GET(request: Request) {
     // Calculer les métriques pour chaque ligne
     for (const routeObj of routesWithData) {
       const routeId = routeObj.route_id;
-      
+
       // Calculer les métriques pour cette ligne
       const metrics = await prisma.$queryRaw`
         SELECT
@@ -92,7 +98,7 @@ export async function GET(request: Request) {
 
       if (Array.isArray(metrics) && metrics.length > 0) {
         const metric = metrics[0];
-        
+
         // S'assurer que toutes les valeurs numériques sont converties correctement
         const sanitizedMetric = {
           totalTrips: Number(metric.total_trips || 0),
@@ -102,15 +108,15 @@ export async function GET(request: Request) {
           minDelay: Number(metric.min_delay || 0),
           onTimeRate: Number(metric.on_time_rate || 0),
           lateRate: Number(metric.late_rate || 0),
-          earlyRate: Number(metric.early_rate || 0)
+          earlyRate: Number(metric.early_rate || 0),
         };
 
         // Supprimer toute entrée existante pour cette combinaison date/route
         await prisma.dailyMetric.deleteMany({
           where: {
             date: startDate,
-            routeId
-          }
+            routeId,
+          },
         });
 
         // Insérer la nouvelle métrique
@@ -118,8 +124,8 @@ export async function GET(request: Request) {
           data: {
             date: startDate,
             routeId,
-            ...sanitizedMetric
-          }
+            ...sanitizedMetric,
+          },
         });
 
         results.push(result);
@@ -127,7 +133,9 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(`Métriques calculées et enregistrées pour ${totalProcessed} lignes`);
+    console.log(
+      `Métriques calculées et enregistrées pour ${totalProcessed} lignes`
+    );
 
     // Optionnel: supprimer les données brutes plus anciennes que X jours
     // Cette étape est déjà gérée dans la collecte temps réel, mais vous pourriez la déplacer ici
@@ -136,14 +144,14 @@ export async function GET(request: Request) {
       status: "success",
       date: dateString,
       processed: totalProcessed,
-      message: `Métriques quotidiennes calculées pour ${totalProcessed} lignes`
+      message: `Métriques quotidiennes calculées pour ${totalProcessed} lignes`,
     });
   } catch (error) {
     console.error("Erreur lors du calcul des métriques quotidiennes:", error);
     return NextResponse.json(
       {
         error: "Erreur serveur",
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );

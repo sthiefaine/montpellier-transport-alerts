@@ -20,6 +20,14 @@
     {
       "path": "/api/gtfs/collect-realtime",
       "schedule": "*/10 0-4 * * *"
+    },
+    {
+      "path": "/api/gtfs/metrics/compute-daily",
+      "schedule": "10 4 * * *"
+    },
+    {
+      "path": "/api/gtfs/metrics/compute-detailed",
+      "schedule": "20 4 * * *"
     }
   ]
 }
