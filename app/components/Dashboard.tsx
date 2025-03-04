@@ -23,6 +23,7 @@ import IncidentCalendar from "./IncidentCalendar";
 import TramMap from "./TramMap";
 import { useTramLines } from "@/services/tramLinesService";
 import TramLineSummary from "./Summary/TramLine";
+import TransportLinesIndicator from "./TransportLinesIndicator/TransportLinesIndicator";
 
 const COLORS = [
   "#FF0000",
@@ -39,19 +40,20 @@ const COLORS = [
   "#C8006B",
 ];
 
+// Couleurs pour les causes, légèrement différentes pour les distinguer des effets
 const CAUSE_COLORS = [
-  "#E74C3C",
-  "#F39C12",
-  "#F1C40F",
-  "#27AE60",
-  "#3498DB",
-  "#9B59B6",
-  "#34495E",
-  "#16A085",
-  "#D35400",
-  "#7F8C8D",
-  "#8E44AD",
-  "#2C3E50",
+  "#E74C3C", // Rouge
+  "#F39C12", // Orange
+  "#F1C40F", // Jaune
+  "#27AE60", // Vert
+  "#3498DB", // Bleu
+  "#9B59B6", // Violet
+  "#34495E", // Bleu foncé
+  "#16A085", // Turquoise
+  "#D35400", // Orange foncé
+  "#7F8C8D", // Gris
+  "#8E44AD", // Violet foncé
+  "#2C3E50", // Bleu très foncé
 ];
 
 const fetcher = async (url: string) => {
@@ -61,6 +63,7 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
+// Fonction pour obtenir le libellé lisible d'une cause
 const getAlertCauseLabel = (cause: AlertCause): string => {
   const causeLabels: Record<string, string> = {
     [AlertCause.UNKNOWN_CAUSE]: "Cause inconnue",
@@ -74,9 +77,9 @@ const getAlertCauseLabel = (cause: AlertCause): string => {
     [AlertCause.MAINTENANCE]: "Maintenance",
     [AlertCause.CONSTRUCTION]: "Travaux",
     [AlertCause.POLICE_ACTIVITY]: "Activité policière",
-    [AlertCause.MEDICAL_EMERGENCY]: "Urgence médicale",
+    [AlertCause.MEDICAL_EMERGENCY]: "Urgence médicale"
   };
-
+  
   return causeLabels[cause] || cause;
 };
 
@@ -176,20 +179,31 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
     revalidateOnMount: true,
   });
 
+  // Récupérer les alertes actives pour l'indicateur de lignes
+  const {
+    data: activeAlerts,
+    error: activeAlertsError,
+    isLoading: activeAlertsLoading,
+  } = useSWR("/api/alerts/active", fetcher, {
+    refreshInterval: 2 * 60 * 1000,
+    revalidateOnMount: true,
+  });
+
   const handleRefresh = () => {
     mutate();
   };
 
+  // Préparer les données pour le graphique des effets
   const effectData =
     !isLoading && stats?.effectCounts && Array.isArray(stats.effectCounts)
       ? stats.effectCounts.map((item, index) => ({
-          name:
-            item.effectLabel || getAlertEffectLabel(item.effect as AlertEffect),
+          name: item.effectLabel || getAlertEffectLabel(item.effect as AlertEffect),
           value: item.count,
           color: COLORS[index % COLORS.length],
         }))
       : [];
-
+  
+  // Préparer les données pour le graphique des causes
   const causeData =
     !isLoading && stats?.causeCounts && Array.isArray(stats.causeCounts)
       ? stats.causeCounts.map((item, index) => ({
@@ -239,6 +253,7 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
         </button>
       </div>
 
+      {/* Cartes de statistiques */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {isLoading ? (
           <>
@@ -325,10 +340,9 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
                   </h3>
                   {stats.effectCounts && stats.effectCounts.length > 0 ? (
                     <p className="text-sm font-bold truncate max-w-full">
-                      {stats.effectCounts[0].effectLabel ||
-                        getAlertEffectLabel(
-                          stats.effectCounts[0].effect as AlertEffect
-                        )}
+                      {stats.effectCounts[0].effectLabel || getAlertEffectLabel(
+                        stats.effectCounts[0].effect as AlertEffect
+                      )}
                     </p>
                   ) : (
                     <p className="text-sm">Aucune donnée</p>
@@ -340,6 +354,12 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
         )}
       </div>
 
+      {/* Indicateur de lignes de transport */}
+      <TransportLinesIndicator
+        activeAlerts={activeAlerts}
+      />
+
+      {/* Graphiques Effets et Causes (2 x 2 sur les grands écrans) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {isLoading ? (
           <>
@@ -510,7 +530,9 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="py-2 px-2 text-left font-medium">Routes</th>
+                    <th className="py-2 px-2 text-left font-medium">
+                      Routes
+                    </th>
                     <th className="py-2 px-2 text-right w-16 font-medium">
                       Nombre
                     </th>

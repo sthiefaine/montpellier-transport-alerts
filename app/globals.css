@@ -55,3 +55,13 @@ body {
     @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
   }
 }
+
+.transport-badge {
+  transition: all 0.15s ease-in-out;
+}
+.transport-badge:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+.transport-badge:active {
+  transform: translateY(0) scale(1);
+}
