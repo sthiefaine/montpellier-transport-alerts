@@ -11,16 +11,20 @@ datasource db {
 }
 
 model Alert {
-  id              String    @id
-  timeStart       DateTime
-  timeEnd         DateTime?
-  cause           String
-  effect          String
-  headerText      String
-  descriptionText String
-  url             String?
-  routeIds        String?
-  stopIds         String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id
+  timeStart     DateTime
+  timeEnd       DateTime?
+  cause         String    @default("UNKNOWN_CAUSE")
+  effect        String    @default("UNKNOWN_EFFECT")
+  headerText    String    @db.Text
+  descriptionText String  @db.Text
+  url           String?
+  routeIds      String?
+  stopIds       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isComplement  Boolean   @default(false)
+  parentAlertId String?
+  parentAlert   Alert?    @relation("AlertComplements", fields: [parentAlertId], references: [id])
+  complements   Alert[]   @relation("AlertComplements")
 }
