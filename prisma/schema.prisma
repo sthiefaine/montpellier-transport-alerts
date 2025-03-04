@@ -40,6 +40,7 @@ model Stop {
   wheelchair    Int?      @map("wheelchair_boarding")
   stopTimes     StopTime[]
   realTimeDelays RealtimeDelay[]
+  stopMetrics   StopMetric[]
   @@map("stops")
 }
 
@@ -52,7 +53,9 @@ model Route {
   textColor    String?   @map("route_text_color")
   trips        Trip[]
   realTimeDelays RealtimeDelay[]
-  
+  dailyMetrics  DailyMetric[]
+  hourlyMetrics HourlyMetric[]
+  stopMetrics   StopMetric[]
   @@map("routes")
 }
 
@@ -104,4 +107,70 @@ model RealtimeDelay {
   @@index([stopId])
   @@index([collectedAt])
   @@map("realtime_delays")
+}
+
+
+model DailyMetric {
+  id            Int       @id @default(autoincrement())
+  date          DateTime  @db.Date  // Jour concerné par les métriques
+  routeId       String    @map("route_id")
+  totalTrips    Int       @map("total_trips")
+  totalStops    Int       @map("total_stops")
+  avgDelay      Float     @map("avg_delay")
+  maxDelay      Int       @map("max_delay")
+  minDelay      Int       @map("min_delay")
+  onTimeRate    Float     @map("on_time_rate")  // % de passages à l'heure (-60s à +60s)
+  lateRate      Float     @map("late_rate")     // % de passages en retard (>60s)
+  earlyRate     Float     @map("early_rate")    // % de passages en avance (<-60s)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  route         Route     @relation(fields: [routeId], references: [id])
+
+  @@unique([date, routeId])
+  @@index([date])
+  @@index([routeId])
+  @@map("daily_metrics")
+}
+
+model HourlyMetric {
+  id            Int       @id @default(autoincrement())
+  date          DateTime  @db.Date  // Jour concerné
+  hour          Int       // Heure de la journée (0-23)
+  routeId       String    @map("route_id")
+  avgDelay      Float     @map("avg_delay")
+  maxDelay      Int       @map("max_delay")
+  minDelay      Int       @map("min_delay")
+  observations  Int       // Nombre d'observations
+  onTimeRate    Float     @map("on_time_rate")
+  lateRate      Float     @map("late_rate")
+  earlyRate     Float     @map("early_rate")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  route         Route     @relation(fields: [routeId], references: [id])
+
+  @@unique([date, hour, routeId])
+  @@index([date, hour])
+  @@index([routeId])
+  @@map("hourly_metrics")
+}
+
+model StopMetric {
+  id            Int       @id @default(autoincrement())
+  date          DateTime  @db.Date  // Jour concerné
+  routeId       String    @map("route_id")
+  stopId        String    @map("stop_id")
+  avgDelay      Float     @map("avg_delay")
+  maxDelay      Int       @map("max_delay")
+  minDelay      Int       @map("min_delay")
+  observations  Int       // Nombre d'observations
+  onTimeRate    Float     @map("on_time_rate")
+  lateRate      Float     @map("late_rate")
+  earlyRate     Float     @map("early_rate")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  route         Route     @relation(fields: [routeId], references: [id])
+  stop          Stop      @relation(fields: [stopId], references: [id])
+
+  @@unique([date, routeId, stopId])
+  @@index([date])
+  @@index([routeId])
+  @@index([stopId])
+  @@map("stop_metrics")
 }
