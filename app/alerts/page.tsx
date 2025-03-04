@@ -10,7 +10,7 @@ export default function AlertsPage() {
   const [stopFilter, setStopFilter] = useState<string>('');
   const [searchInput, setSearchInput] = useState<string>('');
 
-  // Fonction pour gérer la soumission du formulaire de recherche
+  
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.startsWith('route:')) {
@@ -20,13 +20,13 @@ export default function AlertsPage() {
       setStopFilter(searchInput.substring(5).trim());
       setRouteFilter('');
     } else {
-      // Si aucun préfixe n'est spécifié, on considère que c'est une recherche de route
+      
       setRouteFilter(searchInput);
       setStopFilter('');
     }
   };
 
-  // Fonction pour effacer les filtres
+  
   const clearFilters = () => {
     setRouteFilter('');
     setStopFilter('');

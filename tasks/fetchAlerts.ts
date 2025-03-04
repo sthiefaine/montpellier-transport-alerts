@@ -4,17 +4,15 @@ import { prisma } from "@/lib/prisma";
 import path from "path";
 import fs from "fs";
 
-// URL des alertes GTFS-RT
-const ALERT_URL =
-  process.env.ALERT_URL ||
-  "https://data.montpellier3m.fr/TAM_MMM_GTFSRT/Alert.pb";
-// Chemin vers le fichier proto
+
+const ALERT_URL = process.env.ALERT_URL || "https://data.montpellier3m.fr/TAM_MMM_GTFSRT/Alert.pb"
+
 const PROTO_PATH = path.join(
   process.cwd(),
   "lib/gtfs-realtime.proto"
 );
 
-// Fonction pour télécharger le fichier d'alertes
+
 async function downloadAlertFile(): Promise<Buffer> {
   console.log(`Téléchargement des alertes depuis ${ALERT_URL}`);
 
@@ -36,19 +34,19 @@ async function downloadAlertFile(): Promise<Buffer> {
   }
 }
 
-// Fonction pour parser le fichier protobuf
+
 async function parseAlertFile(buffer: Buffer): Promise<any> {
   try {
-    // Charger le fichier proto
+    
     const root = await protobuf.load(PROTO_PATH);
 
-    // Obtenir le type de message
+    
     const FeedMessage = root.lookupType("transit_realtime.FeedMessage");
 
-    // Décoder le message
+    
     const message = FeedMessage.decode(buffer);
 
-    // Convertir en objet JavaScript
+    
     return FeedMessage.toObject(message, {
       longs: String,
       enums: String,
@@ -60,7 +58,7 @@ async function parseAlertFile(buffer: Buffer): Promise<any> {
   }
 }
 
-// Fonction pour sauvegarder les alertes dans la base de données
+
 async function saveAlerts(feedMessage: any): Promise<void> {
   try {
     if (!feedMessage.entity || !Array.isArray(feedMessage.entity)) {
@@ -68,13 +66,13 @@ async function saveAlerts(feedMessage: any): Promise<void> {
       return;
     }
 
-    // Traitement de chaque alerte
+    
     for (const entity of feedMessage.entity) {
       if (!entity.alert) continue;
 
       const alert = entity.alert;
 
-      // Extraire les intervalles de temps
+      
       const timeRanges = alert.activePeriod || [];
       const timeStart =
         timeRanges.length > 0 && timeRanges[0].start
@@ -86,7 +84,7 @@ async function saveAlerts(feedMessage: any): Promise<void> {
           ? new Date(parseInt(timeRanges[0].end) * 1000)
           : null;
 
-      // Extraire les identifiants de routes et d'arrêts affectés
+      
       const informedEntities = alert.informedEntity || [];
       const routeIds = informedEntities
         .filter((entity: any) => entity.routeId)
@@ -98,13 +96,13 @@ async function saveAlerts(feedMessage: any): Promise<void> {
         .map((entity: any) => entity.stopId)
         .join(",");
 
-      // Extraire les textes
+      
       const headerText = alert.headerText?.translation?.[0]?.text || "";
       const descriptionText =
         alert.descriptionText?.translation?.[0]?.text || "";
       const url = alert.url?.translation?.[0]?.text || "";
 
-      // Créer ou mettre à jour l'alerte dans la base de données
+      
       await prisma.alert.upsert({
         where: { id: entity.id },
         update: {
@@ -141,28 +139,28 @@ async function saveAlerts(feedMessage: any): Promise<void> {
   }
 }
 
-// Fonction principale pour récupérer et traiter les alertes
+
 export async function fetchAndProcessAlerts(): Promise<void> {
   try {
-    // Télécharger le fichier d'alertes
+    
     const alertBuffer = await downloadAlertFile();
 
-    // Parser le fichier
+    
     const feedMessage = await parseAlertFile(alertBuffer);
 
-    // Sauvegarder les alertes dans la base de données
+    
     await saveAlerts(feedMessage);
 
     console.log("Traitement des alertes terminé avec succès");
   } catch (error) {
     console.error("Erreur lors du traitement des alertes:", error);
   } finally {
-    // Fermer la connexion Prisma
+    
     await prisma.$disconnect();
   }
 }
 
-// Si ce fichier est exécuté directement
+
 if (require.main === module) {
   fetchAndProcessAlerts()
     .then(() => process.exit(0))

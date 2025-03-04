@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     console.log('Date actuelle pour comparaison:', now.toISOString());
     console.log('Requête d\'alertes avec paramètres:', { active, completed, route, stop });
 
-    // Filtre par statut actif
+    
     if (active === 'true') {
       whereClause = {
         ...whereClause,
@@ -27,18 +27,18 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Filtre par statut terminé
+    
     if (completed === 'true') {
       whereClause = {
         ...whereClause,
         AND: [
-          { timeEnd: { not: null } },  // timeEnd doit exister
-          { timeEnd: { lt: now } }     // timeEnd doit être dans le passé
+          { timeEnd: { not: null } },  
+          { timeEnd: { lt: now } }     
         ]
       };
     }
 
-    // Filtre par route
+    
     if (route) {
       whereClause = {
         ...whereClause,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Filtre par arrêt
+    
     if (stop) {
       whereClause = {
         ...whereClause,
@@ -56,12 +56,12 @@ export async function GET(request: NextRequest) {
 
     console.log('Clause where Prisma:', JSON.stringify(whereClause, null, 2));
 
-    // Récupérer toutes les alertes pour vérification
+    
     if (active === 'true' || completed === 'true') {
       const allAlerts = await prisma.alert.findMany();
       console.log('Toutes les alertes dans la base:', allAlerts.length);
       
-      // Vérifier les dates pour le débogage
+      
       allAlerts.forEach(alert => {
         console.log(`Alerte ${alert.id}: timeStart=${alert.timeStart}, timeEnd=${alert.timeEnd}`);
       });

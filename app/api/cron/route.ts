@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérifier le secret pour s'assurer que l'appel est autorisé
+    
     const authHeader = request.headers.get("authorization");
 
     if (
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Exécuter la tâche de récupération des alertes
+    
     await fetchAndProcessAlerts();
 
     return new Response(

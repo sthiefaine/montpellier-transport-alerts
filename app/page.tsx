@@ -7,16 +7,16 @@ import { AlertCircle, BarChart2, History } from 'lucide-react';
 import useSWR from 'swr';
 import { Alert } from '@/lib/types';
 
-// Fetcher personnalisé avec anti-cache
+
 const fetcher = (url: string) => fetch(`${url}?t=${new Date().getTime()}`).then(res => res.json());
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'activeAlerts' | 'completedAlerts'>('dashboard');
 
-  // Charger toutes les alertes pour calculer le nombre d'alertes de chaque type
+  
   const { data: allAlerts } = useSWR<Alert[]>('/api/alerts', fetcher);
 
-  // Calculer le nombre d'alertes actives et terminées
+  
   const getAlertCounts = () => {
     if (!allAlerts) return { activeCount: 0, completedCount: 0 };
     
@@ -59,7 +59,7 @@ export default function HomePage() {
           Tableau de bord
         </button>
         <button
-          className={`flex items-center py-3 px-6 focus:outline-none whitespace-nowrap ${
+          className={`flex items-center py-3 px-6 focus:outline-none whitespace-nowrap cursor-pointer ${
             activeTab === 'activeAlerts'
               ? 'border-b-2 border-blue-500 text-blue-500 font-medium'
               : 'text-gray-500 hover:text-blue-500'
@@ -73,7 +73,7 @@ export default function HomePage() {
           )}
         </button>
         <button
-          className={`flex items-center py-3 px-6 focus:outline-none whitespace-nowrap ${
+          className={`flex items-center py-3 px-6 focus:outline-none whitespace-nowrap cursor-pointer ${
             activeTab === 'completedAlerts'
               ? 'border-b-2 border-blue-500 text-blue-500 font-medium'
               : 'text-gray-500 hover:text-blue-500'

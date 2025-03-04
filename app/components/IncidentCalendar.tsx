@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, JSX } from "react";
 import useSWR from "swr";
 import { InfoIcon, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
-// Types
+
 type CalendarData = {
   [date: string]: number;
 };
@@ -24,12 +24,12 @@ interface IncidentCalendarProps {
   fixedMonths?: number;
 }
 
-// Fonction pour formater la date en YYYY-MM-DD
+
 const formatDate = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
 
-// Fonction pour formater la date en format lisible
+
 const formatReadableDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   return date.toLocaleDateString("fr-FR", {
@@ -42,7 +42,7 @@ const formatReadableDate = (dateStr: string): string => {
 
 
 
-// Fonction pour générer les couleurs de la heatmap
+
 const getColor = (count: number, maxCount: number): string => {
   if (count === 0) return "#ebedf0";
 
@@ -55,7 +55,7 @@ const getColor = (count: number, maxCount: number): string => {
   return colors[index];
 };
 
-// Fonction pour obtenir le nom du mois
+
 const getMonthName = (month: number, year: number): string => {
   const months = [
     "Jan",
@@ -74,7 +74,7 @@ const getMonthName = (month: number, year: number): string => {
   return `${months[month]}`;
 };
 
-// Fonction pour obtenir le jour de la semaine
+
 const getDayOfWeek = (day: number): string => {
   const days = [
     "Dimanche",
@@ -88,7 +88,7 @@ const getDayOfWeek = (day: number): string => {
   return days[day];
 };
 
-// Fetcher pour récupérer les données d'incidents
+
 const fetcher = async (url: string): Promise<CalendarData> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Erreur lors du fetch");
@@ -101,30 +101,30 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
   const calendarRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // États
+  
   const [calendarData, setCalendarData] = useState<CalendarData>({});
   const [maxCount, setMaxCount] = useState<number>(5);
   const [hoveredDate, setHoveredDate] = useState<HoveredDateInfo>(null);
   const [legendVisible, setLegendVisible] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<Date>(() => {
-    // Par défaut, commencer 6 mois avant le mois actuel (pour voir 6 mois d'historique + 3 mois à venir)
+    
     const date = new Date();
     date.setDate(1);
     date.setMonth(date.getMonth() - 6);
     return date;
   });
 
-  // Calculer combien de semaines nous devons afficher
-  const weeksToShow = Math.round(fixedMonths * 4.33) + 1; // +1 pour être sûr d'afficher tous les jours
+  
+  const weeksToShow = Math.round(fixedMonths * 4.33) + 1; 
 
-  // Définir l'URL pour récupérer les données d'incidents
-  // Nous récupérons une année et demie pour avoir des données en cache pour la navigation
+  
+  
   const { data, error, isLoading } = useSWR<CalendarData>(
     `/api/alerts/calendar?months=18`,
     fetcher
   );
 
-  // Effet pour charger les données
+  
   useEffect(() => {
     if (data) {
       setCalendarData(data);
@@ -134,13 +134,13 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     }
   }, [data, isLoading, error]);
 
-  // Fonctions de navigation
+  
   const navigateBack = () => {
     const newDate = new Date(startDate);
-    newDate.setMonth(newDate.getMonth() - 3); // Reculer de 3 mois
+    newDate.setMonth(newDate.getMonth() - 3); 
     setStartDate(newDate);
 
-    // Faire défiler au début après le changement
+    
     setTimeout(() => {
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollLeft = 0;
@@ -150,7 +150,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
 
   const navigateForward = () => {
     const newDate = new Date(startDate);
-    newDate.setMonth(newDate.getMonth() + 3); // Avancer de 3 mois
+    newDate.setMonth(newDate.getMonth() + 3); 
 
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() - fixedMonths + 3); 
@@ -159,7 +159,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     if (newDate <= maxDate) {
       setStartDate(newDate);
 
-      // Faire défiler au début après le changement
+      
       setTimeout(() => {
         if (scrollContainerRef.current) {
           scrollContainerRef.current.scrollLeft = 0;
@@ -171,19 +171,19 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
   const navigateToday = () => {
     const today = new Date();
     today.setDate(1);
-    today.setMonth(today.getMonth() - 6); // Positionne le mois actuel au milieu de la vue (6 mois avant, 3 après)
+    today.setMonth(today.getMonth() - 6); 
     setStartDate(today);
 
-    // Faire défiler pour montrer le mois actuel
+    
     setTimeout(() => {
       if (scrollContainerRef.current) {
-        const currentMonthPosition = 6 * 4.33 * 14; // Position approximative du mois actuel
+        const currentMonthPosition = 6 * 4.33 * 14; 
         scrollContainerRef.current.scrollLeft = currentMonthPosition;
       }
     }, 0);
   };
 
-  // Fonction pour vérifier si la période actuelle (mois actuel +/- 1) est visible
+  
   const isCurrentPeriodVisible = () => {
     const today = new Date();
     const currentMonth = today.getMonth();
@@ -193,7 +193,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     endDate.setMonth(endDate.getMonth() + fixedMonths);
 
     const startMonth = new Date(startDate);
-    startMonth.setMonth(startMonth.getMonth() + 5); // Le mois 5 dans notre vue devrait être proche du mois actuel
+    startMonth.setMonth(startMonth.getMonth() + 5); 
     const startMonthValue = startMonth.getMonth();
     const startYearValue = startMonth.getFullYear();
 
@@ -203,16 +203,16 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     );
   };
 
-  // Générer le calendrier
+  
   const generateCalendar = (): JSX.Element => {
-    // On commence au premier jour du mois de départ
+    
     const calendarStartDate = new Date(startDate);
 
-    // Reculer jusqu'au premier jour de la semaine pour commencer proprement
+    
     const firstDayOfWeek = calendarStartDate.getDay();
     calendarStartDate.setDate(calendarStartDate.getDate() - firstDayOfWeek);
 
-    // Générer les cases du calendrier par semaine
+    
     const weeks: JSX.Element[] = [];
     let currentDate = new Date(calendarStartDate);
 
@@ -224,23 +224,23 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
         const count = calendarData[dateString] || 0;
         const color = getColor(count, maxCount);
 
-        // Vérifier si la date est dans la plage à afficher
+        
         const isInRange =
           currentDate >= calendarStartDate && week < weeksToShow;
 
-        // Mettre en évidence le jour actuel
+        
         const isToday = dateString === formatDate(new Date());
 
         if (isInRange) {
           days.push(
             <div
-              key={dateString}
+              key={dateString+day}
               className={`w-2.5 h-2.5 m-0.5 rounded-sm cursor-pointer transition-all duration-200 hover:transform hover:scale-150 ${
                 isToday ? "ring-1 ring-blue-500" : ""
               }`}
               style={{ backgroundColor: color }}
               onMouseEnter={(e) => {
-                // Récupérer la position pour l'infobulle
+                
                 const rect = e.currentTarget.getBoundingClientRect();
                 const calendarRect =
                   calendarRef.current?.getBoundingClientRect() || {
@@ -260,13 +260,13 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
             />
           );
         } else {
-          // Espace vide pour les jours hors plage
+          
           days.push(
             <div key={`empty-${week}-${day}`} className="w-2.5 h-2.5 m-0.5" />
           );
         }
 
-        // Passer au jour suivant
+        
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
@@ -277,7 +277,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
       );
     }
 
-    // Générer les en-têtes des mois
+    
     const months: JSX.Element[] = [];
     const monthLabels: MonthLabel[] = [];
     currentDate = new Date(calendarStartDate);
@@ -285,8 +285,8 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     let currentMonth = currentDate.getMonth();
     let currentYear = currentDate.getFullYear();
 
-    // On ne commence pas forcément au début du mois, donc le premier label
-    // doit être placé en fonction de la position dans le mois
+    
+    
     const daysPassedInFirstMonth = currentDate.getDate() - 1;
     const weeksPassedInFirstMonth = Math.floor(
       (daysPassedInFirstMonth + firstDayOfWeek) / 7
@@ -303,21 +303,21 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
         currentYear = currentDate.getFullYear();
         monthLabels.push({
           month: getMonthName(currentMonth, currentYear),
-          position: i / 7, // Position en semaines
+          position: i / 7, 
         });
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Filtrer les labels trop proches les uns des autres
+    
     const filteredLabels = monthLabels.reduce(
       (acc: MonthLabel[], label, index) => {
-        // Si c'est le premier label, l'ajouter
+        
         if (index === 0) return [label];
 
-        // Sinon, vérifier si ce label est suffisamment loin du précédent
+        
         const lastLabel = acc[acc.length - 1];
-        const minDistance = 2.5; // Au moins 2.5 semaines d'écart (environ 35px)
+        const minDistance = 2.5; 
 
         if (label.position - lastLabel.position >= minDistance) {
           acc.push(label);
@@ -333,7 +333,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
         <div
           key={`month-${index}`}
           className="text-xs text-gray-500 absolute top-0 whitespace-nowrap"
-          style={{ left: `${label.position * 14 + 12}px` }} // 14px par semaine
+          style={{ left: `${label.position * 14 + 12}px` }} 
         >
           {label.month}
         </div>
@@ -350,15 +350,15 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     );
   };
 
-  // Rendu de l'infobulle
+  
   const renderTooltip = () => {
     if (!hoveredDate) return null;
 
-    // Calculer la position de l'infobulle
+    
     const tooltipStyle: React.CSSProperties = {
       position: "absolute",
       left: `${hoveredDate.x}px`,
-      top: `${hoveredDate.y - 50}px`, // Positionner au-dessus du carré
+      top: `${hoveredDate.y - 50}px`, 
     };
 
     return (
@@ -375,7 +375,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     );
   };
 
-  // Style pour masquer la barre de défilement tout en permettant le défilement
+  
   const hideScrollbarStyle = `
     .hide-scrollbar::-webkit-scrollbar {
       height: 4px;

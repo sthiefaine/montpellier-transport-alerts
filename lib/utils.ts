@@ -2,7 +2,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { AlertCause, AlertEffect } from './types';
 
-// Fonctions pour obtenir des libellés lisibles pour les causes et effets
+
 export function getAlertCauseLabel(cause: AlertCause): string {
   const labels: Record<AlertCause, string> = {
     [AlertCause.UNKNOWN_CAUSE]: 'Cause inconnue',
@@ -40,13 +40,13 @@ export function getAlertEffectLabel(effect: AlertEffect): string {
   return labels[effect] || 'Inconnu';
 }
 
-// Fonction pour formater la date
+
 export function formatDate(dateString: string | Date | null): string {
   if (!dateString) return 'Non défini';
   return format(new Date(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
 }
 
-// Fonction pour déterminer la couleur en fonction de l'effet
+
 export function getAlertColor(effect: string): string {
   switch (effect) {
     case 'NO_SERVICE':
@@ -66,12 +66,12 @@ export function getAlertColor(effect: string): string {
   }
 }
 
-// Fonction pour déterminer une couleur en fonction de la valeur (pour les graphiques)
+
 export function getColorForValue(value: number): string {
-  // Échelle de bleu, du plus clair au plus foncé
-  if (value > 80) return '#0047AB'; // Bleu cobalt
-  if (value > 60) return '#1E90FF'; // Bleu dodger
-  if (value > 40) return '#00BFFF'; // Bleu ciel profond
-  if (value > 20) return '#87CEEB'; // Bleu ciel
-  return '#ADD8E6'; // Bleu clair
+  
+  if (value > 80) return '#0047AB'; 
+  if (value > 60) return '#1E90FF'; 
+  if (value > 40) return '#00BFFF'; 
+  if (value > 20) return '#87CEEB'; 
+  return '#ADD8E6'; 
 }

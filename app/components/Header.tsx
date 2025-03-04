@@ -34,7 +34,7 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* Menu desktop */}
+          
           <div className="hidden md:flex items-center space-x-4">
             <Link 
               href="/" 
@@ -60,7 +60,7 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* Bouton menu mobile */}
+          
           <div className="md:hidden flex items-center">
             <button
               onClick={toggleMobileMenu}
@@ -76,7 +76,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Menu mobile */}
+      
       {mobileMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">

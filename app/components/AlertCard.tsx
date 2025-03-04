@@ -9,12 +9,12 @@ interface AlertCardProps {
 }
 
 export default function AlertCard({ alert, compact = false }: AlertCardProps) {
-  // Déterminer si l'alerte est active ou terminée
+  
   const now = new Date();
   const timeEndDate = alert.timeEnd ? new Date(alert.timeEnd) : null;
   const isActive = timeEndDate === null || timeEndDate >= now;
   
-  // Fonction pour déterminer l'icône en fonction de l'effet
+  
   const getAlertIcon = (effect: string) => {
     switch (effect) {
       case 'NO_SERVICE':
@@ -36,7 +36,7 @@ export default function AlertCard({ alert, compact = false }: AlertCardProps) {
         <div className="flex-1">
           <div className="flex justify-between items-start">
             <h3 className="font-bold text-lg">{alert.headerText}</h3>
-            {/* Badge de statut */}
+            
             <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap
               ${isActive 
                 ? 'bg-red-100 text-red-800 border border-red-300' 

@@ -3,16 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
-    // Obtenir la période demandée (par défaut 6 mois)
+    
     const searchParams = request.nextUrl.searchParams;
     const months = parseInt(searchParams.get("months") || "6");
 
-    // Calculer la date de début (aujourd'hui - X mois)
+    
     const endDate = new Date();
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - months);
 
-    // Récupérer toutes les alertes dans cette période
+    
     const alerts = await prisma.alert.findMany({
       where: {
         timeStart: {
@@ -32,13 +32,13 @@ export async function GET(request: NextRequest) {
       `Récupéré ${alerts.length} alertes pour le calendrier d'incidents`
     );
 
-    // Formater les données pour le calendrier
+    
     const calendarData: Record<string, number> = {};
 
     alerts.forEach((alert) => {
-      // Formater la date au format YYYY-MM-DD
+      
       const dateKey = alert.timeStart.toISOString().split("T")[0];
-      // Incrémenter le compteur pour cette date
+      
       if (calendarData[dateKey]) {
         calendarData[dateKey]++;
       } else {
@@ -46,12 +46,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Retourner les données au format JSON
+    
     return new Response(JSON.stringify(calendarData), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=300", // Cache de 5 minutes
+        "Cache-Control": "public, max-age=300", 
       },
     });
   } catch (error) {

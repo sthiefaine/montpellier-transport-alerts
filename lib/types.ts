@@ -1,8 +1,8 @@
-// Types pour les alertes
+
 export interface Alert {
   id: string;
-  timeStart: string | Date; // ISO date string ou objet Date
-  timeEnd: string | Date | null; // ISO date string ou objet Date
+  timeStart: string | Date; 
+  timeEnd: string | Date | null; 
   cause: AlertCause;
   effect: AlertEffect;
   headerText: string;
@@ -10,11 +10,11 @@ export interface Alert {
   url: string | null;
   routeIds: string | null;
   stopIds: string | null;
-  createdAt: string | Date; // ISO date string ou objet Date
-  updatedAt: string | Date; // ISO date string ou objet Date
+  createdAt: string | Date; 
+  updatedAt: string | Date; 
 }
 
-// Énumérations pour les causes et effets possibles
+
 export enum AlertCause {
   UNKNOWN_CAUSE = 'UNKNOWN_CAUSE',
   OTHER_CAUSE = 'OTHER_CAUSE',
@@ -44,7 +44,7 @@ export enum AlertEffect {
   ACCESSIBILITY_ISSUE = 'ACCESSIBILITY_ISSUE'
 }
 
-// Types pour les statistiques
+
 export interface AlertStats {
   activeCount: number;
   completedCount: number;
@@ -63,7 +63,7 @@ export interface RouteCount {
   count: number;
 }
 
-// Types pour les filtres
+
 export interface AlertFilters {
   active?: boolean;
   completed?: boolean;

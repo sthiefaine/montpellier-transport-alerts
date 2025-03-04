@@ -13,7 +13,7 @@ interface AlertListProps {
   compact?: boolean;
 }
 
-// Fetcher personnalisé avec anti-cache
+
 const fetcher = (url: string) => fetch(`${url}&t=${new Date().getTime()}`).then(res => res.json());
 
 export default function AlertList({
@@ -24,11 +24,11 @@ export default function AlertList({
   maxItems,
   compact = false,
 }: AlertListProps) {
-  // Construire l'URL avec les paramètres de filtre
+  
   const getApiUrl = () => {
     const params = new URLSearchParams();
     
-    // Ne pas ajouter les filtres active/completed car on filtre manuellement
+    
     
     if (routeFilter) {
       params.append('route', routeFilter);
@@ -41,22 +41,22 @@ export default function AlertList({
     return `/api/alerts?${params.toString()}`;
   };
 
-  // SWR avec configuration globale
+  
   const { data, error, isLoading, mutate } = useSWR<Alert[]>(getApiUrl(), fetcher);
 
-  // Fonction pour forcer un rafraîchissement manuel
+  
   const handleRefresh = () => {
     mutate();
   };
 
-  // Filtrer les alertes côté client selon active/terminée
+  
   const filteredAlerts = () => {
     if (!data) return [];
     
     const now = new Date();
     
     if (showOnlyActive) {
-      // Filtrer les alertes actives (timeEnd est dans le futur ou null)
+      
       return data.filter(alert => {
         const timeEndDate = alert.timeEnd ? new Date(alert.timeEnd) : null;
         return timeEndDate === null || timeEndDate >= now;
@@ -64,18 +64,18 @@ export default function AlertList({
     } 
     
     if (showOnlyCompleted) {
-      // Filtrer les alertes terminées (timeEnd est dans le passé et pas null)
+      
       return data.filter(alert => {
         const timeEndDate = alert.timeEnd ? new Date(alert.timeEnd) : null;
         return timeEndDate !== null && timeEndDate < now;
       });
     }
     
-    // Si aucun filtre spécifique, retourner toutes les alertes
+    
     return data;
   };
 
-  // Appliquer le filtrage et la limite
+  
   const alerts = filteredAlerts();
   const limitedAlerts = maxItems ? alerts.slice(0, maxItems) : alerts;
 
@@ -115,7 +115,7 @@ export default function AlertList({
 
   return (
     <div>
-      {/* Bouton de rafraîchissement manuel */}
+      
       <div className="flex justify-end mb-4">
         <button 
           onClick={handleRefresh}
