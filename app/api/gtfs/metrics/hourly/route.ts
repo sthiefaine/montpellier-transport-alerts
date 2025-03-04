@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     }
 
     // Construire la clause where
-    let whereClause: any = {
+    const whereClause: any = {
       date: targetDate,
     };
 

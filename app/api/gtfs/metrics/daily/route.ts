@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     const routeId = url.searchParams.get("routeId");
     const lastParam = url.searchParams.get("last");
 
-    let whereClause: any = {};
+    const whereClause: any = {};
 
     // Filtrer par date
     if (dateParam) {
