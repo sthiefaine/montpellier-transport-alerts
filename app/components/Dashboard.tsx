@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { SetStateAction, useState } from "react";
 import useSWR from "swr";
 import {
   PieChart,
@@ -116,7 +116,12 @@ const CalendarSkeleton = () => (
   </div>
 );
 
-export default function Dashboard() {
+
+type DashboardProps = {
+  setActiveTab: (value: SetStateAction<"activeAlerts" | "dashboard" | "completedAlerts">) => void
+}
+
+export default function Dashboard({setActiveTab}: DashboardProps) {
   const [showAllStats, setShowAllStats] = useState<boolean>(true);
 
   const {
@@ -228,7 +233,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="bg-white rounded-lg shadow p-3 cursor-pointer">
-              <div className="flex items-center" onClick={() => setShowAllStats(false)}>
+              <div className="flex items-center" onClick={() => setActiveTab('activeAlerts')}>
                 <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
                 <div>
                   <h3 className="text-gray-500 text-xs">Alertes actives</h3>
@@ -238,7 +243,7 @@ export default function Dashboard() {
             </div>
 
             <div className="bg-white rounded-lg shadow p-3 cursor-pointer">
-              <div className="flex items-center" onClick={() => setShowAllStats(true)}>
+              <div className="flex items-center" onClick={() => setActiveTab('completedAlerts')}>
                 <History className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
                 <div>
                   <h3 className="text-gray-500 text-xs">Alertes terminées</h3>

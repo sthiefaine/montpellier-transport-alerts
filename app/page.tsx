@@ -48,7 +48,7 @@ export default function HomePage() {
       {/* Onglets */}
       <div className="flex border-b mb-8 overflow-x-auto">
         <button
-          className={`flex items-center py-3 px-6 focus:outline-none whitespace-nowrap ${
+          className={`flex items-center py-3 px-6 focus:outline-none whitespace-nowrap cursor-pointer ${
             activeTab === 'dashboard'
               ? 'border-b-2 border-blue-500 text-blue-500 font-medium'
               : 'text-gray-500 hover:text-blue-500'
@@ -91,7 +91,7 @@ export default function HomePage() {
       {/* Contenu */}
       <div className="mt-6">
         {activeTab === 'dashboard' ? (
-          <Dashboard />
+          <Dashboard setActiveTab={setActiveTab} />
         ) : activeTab === 'activeAlerts' ? (
           <div>
             <h2 className="text-xl font-bold mb-4 flex items-center">
