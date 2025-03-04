@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export async function GET() {
+  try {
+    const routeDelays = await prisma.$queryRaw`
+      SELECT 
+        r."route_short_name" as route_number,
+        r."route_long_name" as route_name,
+        ROUND(AVG(rd.delay)::numeric) as avg_delay_seconds,
+        COUNT(*) as observations,
+        ROUND((COUNT(CASE WHEN rd.delay BETWEEN -60 AND 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) as punctuality_percentage,
+        '#' || r.route_color as color
+      FROM "realtime_delays" rd
+      JOIN "routes" r ON rd."route_id" = r."route_id"
+      WHERE rd."collected_at" > NOW() - INTERVAL '24 hours'
+      AND rd."status" = 'SCHEDULED'
+      GROUP BY r."route_id", r."route_short_name", r."route_long_name", r.route_color
+      ORDER BY avg_delay_seconds DESC
+    `;
+
+    return NextResponse.json(routeDelays);
+  } catch (error) {
+    console.error("Erreur API by-route:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
