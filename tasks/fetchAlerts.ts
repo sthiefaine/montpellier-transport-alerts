@@ -3,7 +3,7 @@ import * as protobuf from "protobufjs";
 import { prisma } from "@/lib/prisma";
 import path from "path";
 import fs from "fs";
-import { determineCauseByKeywords } from "@/helpers/incident";
+import { determineCauseByKeywords, determineEffectByKeywords } from "@/helpers/incident";
 
 const ALERT_URL =
   process.env.ALERT_URL ||
@@ -141,6 +141,7 @@ async function processAlert(entity: any): Promise<void> {
 
   const cause =
     alert.cause || determineCauseByKeywords(descriptionText, headerText);
+  const effect = alert.effect || determineEffectByKeywords(descriptionText, headerText)
 
   await prisma.alert.upsert({
     where: { id: entity.id },
@@ -148,7 +149,7 @@ async function processAlert(entity: any): Promise<void> {
       timeStart,
       timeEnd,
       cause,
-      effect: alert.effect || "UNKNOWN_EFFECT",
+      effect,
       headerText,
       descriptionText,
       url,
@@ -162,7 +163,7 @@ async function processAlert(entity: any): Promise<void> {
       timeStart,
       timeEnd,
       cause,
-      effect: alert.effect || "UNKNOWN_EFFECT",
+      effect,
       headerText,
       descriptionText,
       url,
