@@ -24,6 +24,7 @@ import TramMap from "./TramMap";
 import { useTramLines } from "@/services/tramLinesService";
 import TramLineSummary from "./Summary/TramLine";
 import TransportLinesIndicator from "./TransportLinesIndicator/TransportLinesIndicator";
+import DelayStats from "./DelayStats/DelayStats";
 
 const COLORS = [
   "#FF0000",
@@ -77,9 +78,9 @@ const getAlertCauseLabel = (cause: AlertCause): string => {
     [AlertCause.MAINTENANCE]: "Maintenance",
     [AlertCause.CONSTRUCTION]: "Travaux",
     [AlertCause.POLICE_ACTIVITY]: "Activité policière",
-    [AlertCause.MEDICAL_EMERGENCY]: "Urgence médicale"
+    [AlertCause.MEDICAL_EMERGENCY]: "Urgence médicale",
   };
-  
+
   return causeLabels[cause] || cause;
 };
 
@@ -197,12 +198,13 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
   const effectData =
     !isLoading && stats?.effectCounts && Array.isArray(stats.effectCounts)
       ? stats.effectCounts.map((item, index) => ({
-          name: item.effectLabel || getAlertEffectLabel(item.effect as AlertEffect),
+          name:
+            item.effectLabel || getAlertEffectLabel(item.effect as AlertEffect),
           value: item.count,
           color: COLORS[index % COLORS.length],
         }))
       : [];
-  
+
   // Préparer les données pour le graphique des causes
   const causeData =
     !isLoading && stats?.causeCounts && Array.isArray(stats.causeCounts)
@@ -340,9 +342,10 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
                   </h3>
                   {stats.effectCounts && stats.effectCounts.length > 0 ? (
                     <p className="text-sm font-bold truncate max-w-full">
-                      {stats.effectCounts[0].effectLabel || getAlertEffectLabel(
-                        stats.effectCounts[0].effect as AlertEffect
-                      )}
+                      {stats.effectCounts[0].effectLabel ||
+                        getAlertEffectLabel(
+                          stats.effectCounts[0].effect as AlertEffect
+                        )}
                     </p>
                   ) : (
                     <p className="text-sm">Aucune donnée</p>
@@ -355,9 +358,9 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
       </div>
 
       {/* Indicateur de lignes de transport */}
-      <TransportLinesIndicator
-        activeAlerts={activeAlerts}
-      />
+      <TransportLinesIndicator activeAlerts={activeAlerts} />
+
+      <DelayStats />
 
       {/* Graphiques Effets et Causes (2 x 2 sur les grands écrans) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -530,9 +533,7 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="py-2 px-2 text-left font-medium">
-                      Routes
-                    </th>
+                    <th className="py-2 px-2 text-left font-medium">Routes</th>
                     <th className="py-2 px-2 text-right w-16 font-medium">
                       Nombre
                     </th>

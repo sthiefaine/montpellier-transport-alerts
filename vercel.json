@@ -8,6 +8,18 @@
     {
       "path": "/api/cron",
       "schedule": "*/10 0-4 * * *"
+    },
+    {
+      "path": "/api/gtfs/import",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/gtfs/collect-realtime",
+      "schedule": "*/1 5-23 * * *"
+    },
+    {
+      "path": "/api/gtfs/collect-realtime",
+      "schedule": "*/10 0-4 * * *"
     }
   ]
 }

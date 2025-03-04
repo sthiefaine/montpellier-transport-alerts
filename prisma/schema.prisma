@@ -28,3 +28,80 @@ model Alert {
   parentAlert   Alert?    @relation("AlertComplements", fields: [parentAlertId], references: [id])
   complements   Alert[]   @relation("AlertComplements")
 }
+
+model Stop {
+  id            String    @id @map("stop_id")
+  code          String?   @map("stop_code")
+  name          String    @map("stop_name")
+  lat           Float     @map("stop_lat")
+  lon           Float     @map("stop_lon")
+  locationType  Int?      @map("location_type")
+  parentStation String?   @map("parent_station")
+  wheelchair    Int?      @map("wheelchair_boarding")
+  stopTimes     StopTime[]
+  realTimeDelays RealtimeDelay[]
+  @@map("stops")
+}
+
+model Route {
+  id           String    @id @map("route_id")
+  shortName    String    @map("route_short_name")
+  longName     String    @map("route_long_name")
+  type         Int       @map("route_type")
+  color        String?   @map("route_color")
+  textColor    String?   @map("route_text_color")
+  trips        Trip[]
+  realTimeDelays RealtimeDelay[]
+  
+  @@map("routes")
+}
+
+model Trip {
+  id                  String    @id @map("trip_id")
+  routeId             String    @map("route_id")
+  serviceId           String    @map("service_id")
+  headsign            String?   @map("trip_headsign")
+  directionId         Int?      @map("direction_id")
+  blockId             String?   @map("block_id")
+  shapeId             String?   @map("shape_id")
+  wheelchairAccessible Int?      @map("wheelchair_accessible")
+  bikesAllowed        Int?      @map("bikes_allowed")
+  route               Route     @relation(fields: [routeId], references: [id])
+  stopTimes           StopTime[]
+  realTimeDelays      RealtimeDelay[]
+  @@map("trips")
+}
+
+model StopTime {
+  tripId         String    @map("trip_id")
+  arrivalTime    String    @map("arrival_time")
+  departureTime  String    @map("departure_time")
+  stopId         String    @map("stop_id")
+  stopSequence   Int       @map("stop_sequence")
+  pickupType     Int?      @map("pickup_type")
+  dropOffType    Int?      @map("drop_off_type")
+  trip           Trip      @relation(fields: [tripId], references: [id])
+  stop           Stop      @relation(fields: [stopId], references: [id])
+  @@id([tripId, stopSequence])
+  @@map("stop_times")
+}
+
+model RealtimeDelay {
+  id              Int       @id @default(autoincrement())
+  collectedAt     DateTime  @default(now()) @map("collected_at")
+  tripId          String    @map("trip_id")
+  routeId         String    @map("route_id")
+  stopId          String    @map("stop_id")
+  scheduledTime   BigInt?   @map("scheduled_time")
+  actualTime      BigInt?   @map("actual_time")
+  delay           Int?      @map("delay")
+  status          String?   @map("status")
+  trip            Trip      @relation(fields: [tripId], references: [id])
+  route           Route     @relation(fields: [routeId], references: [id])
+  stop            Stop      @relation(fields: [stopId], references: [id])
+  @@index([tripId])
+  @@index([routeId])
+  @@index([stopId])
+  @@index([collectedAt])
+  @@map("realtime_delays")
+}

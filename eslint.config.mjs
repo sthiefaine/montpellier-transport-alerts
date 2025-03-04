@@ -6,12 +6,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({
-  baseDirectory: __dirname
+  baseDirectory: __dirname,
+  recommendedConfig: { plugins: [] }
 });
 
+// Utilisez la méthode correcte pour étendre les configurations
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends(
+    "next/core-web-vitals",
+    "next/typescript"
+  ),
   {
+    languageOptions: {
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
     rules: {
       "react/no-unescaped-entities": "warn",
       "no-unused-vars": "off",
