@@ -51,8 +51,8 @@ const TramMap: React.FC<TramMapProps> = ({
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: "https://tiles.openfreemap.org/styles/liberty",
-      center: [3.876716, 43.610769],
-      zoom: 12,
+      center: [3.892216, 43.610469],
+      zoom: 10.3,
       attributionControl: false,
       maxBounds: [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]],
     });
@@ -128,7 +128,12 @@ const TramMap: React.FC<TramMapProps> = ({
   }, [tramLinesData]);
 
   return (
-    <div className={`tram-map-container ${className}`} style={{ height }}>
+    <div className={`tram-map-container ${className}`} style={
+      { height, 
+        width: "300px",
+        maxWidth: "500px"
+      }
+      }>
       <div
         ref={mapContainer}
         style={{ width: "100%", height: "100%", borderRadius: "8px" }}

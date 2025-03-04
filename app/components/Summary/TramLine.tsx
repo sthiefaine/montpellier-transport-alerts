@@ -45,11 +45,11 @@ const TramLineSummary: React.FC<TramLineSummaryProps> = ({
   return (
     <div className="tram-line-summary">
       <h3 className="text-lg font-bold mb-3">Lignes de tramway</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="flex flex-wrap gap-3">
         {tramLines.map((line) => (
           <div
             key={line.num}
-            className="bg-white rounded-lg shadow p-3 flex items-center"
+            className="bg-white rounded-lg shadow p-3 flex flex-wrap items-center"
             style={{ borderLeft: `4px solid ${line.color}` }}
           >
             <div

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, JSX } from "react";
 import useSWR from "swr";
 import { InfoIcon, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
-
 type CalendarData = {
   [date: string]: number;
 };
@@ -24,11 +23,9 @@ interface IncidentCalendarProps {
   fixedMonths?: number;
 }
 
-
 const formatDate = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
-
 
 const formatReadableDate = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -39,9 +36,6 @@ const formatReadableDate = (dateStr: string): string => {
     day: "numeric",
   });
 };
-
-
-
 
 const getColor = (count: number, maxCount: number): string => {
   if (count === 0) return "#ebedf0";
@@ -54,7 +48,6 @@ const getColor = (count: number, maxCount: number): string => {
   );
   return colors[index];
 };
-
 
 const getMonthName = (month: number, year: number): string => {
   const months = [
@@ -74,7 +67,6 @@ const getMonthName = (month: number, year: number): string => {
   return `${months[month]}`;
 };
 
-
 const getDayOfWeek = (day: number): string => {
   const days = [
     "Dimanche",
@@ -88,11 +80,14 @@ const getDayOfWeek = (day: number): string => {
   return days[day];
 };
 
-
 const fetcher = async (url: string): Promise<CalendarData> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Erreur lors du fetch");
   return res.json() as Promise<CalendarData>;
+};
+
+const isSmallScreen = (): boolean => {
+  return window.innerWidth < 768;
 };
 
 const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
@@ -101,30 +96,26 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
   const calendarRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  
   const [calendarData, setCalendarData] = useState<CalendarData>({});
   const [maxCount, setMaxCount] = useState<number>(5);
   const [hoveredDate, setHoveredDate] = useState<HoveredDateInfo>(null);
   const [legendVisible, setLegendVisible] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<Date>(() => {
-    
     const date = new Date();
     date.setDate(1);
     date.setMonth(date.getMonth() - 6);
     return date;
   });
 
-  
-  const weeksToShow = Math.round(fixedMonths * 4.33) + 1; 
+  const [hasScrolledToToday, setHasScrolledToToday] = useState<boolean>(false);
 
-  
-  
+  const weeksToShow = Math.round(fixedMonths * 4.33) + 1;
+
   const { data, error, isLoading } = useSWR<CalendarData>(
     `/api/alerts/calendar?months=18`,
     fetcher
   );
 
-  
   useEffect(() => {
     if (data) {
       setCalendarData(data);
@@ -134,13 +125,43 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     }
   }, [data, isLoading, error]);
 
-  
+  useEffect(() => {
+    if (data && !isLoading && !hasScrolledToToday) {
+      try {
+        if (isSmallScreen()) {
+          navigateToday();
+        }
+
+        setHasScrolledToToday(true);
+      } catch (e) {
+        console.error("Erreur lors de la détection de la taille d'écran:", e);
+      }
+    }
+  }, [data, isLoading, hasScrolledToToday]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      try {
+        if (isSmallScreen() && data && !isLoading && !hasScrolledToToday) {
+          navigateToday();
+          setHasScrolledToToday(true);
+        }
+      } catch (e) {
+        console.error("Erreur lors de la détection de la taille d'écran:", e);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [data, isLoading, hasScrolledToToday]);
+
   const navigateBack = () => {
     const newDate = new Date(startDate);
-    newDate.setMonth(newDate.getMonth() - 3); 
+    newDate.setMonth(newDate.getMonth() - 3);
     setStartDate(newDate);
 
-    
     setTimeout(() => {
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollLeft = 0;
@@ -150,16 +171,15 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
 
   const navigateForward = () => {
     const newDate = new Date(startDate);
-    newDate.setMonth(newDate.getMonth() + 3); 
+    newDate.setMonth(newDate.getMonth() + 3);
 
     const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() - fixedMonths + 3); 
+    maxDate.setMonth(maxDate.getMonth() - fixedMonths + 3);
     maxDate.setDate(1);
 
     if (newDate <= maxDate) {
       setStartDate(newDate);
 
-      
       setTimeout(() => {
         if (scrollContainerRef.current) {
           scrollContainerRef.current.scrollLeft = 0;
@@ -171,19 +191,17 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
   const navigateToday = () => {
     const today = new Date();
     today.setDate(1);
-    today.setMonth(today.getMonth() - 6); 
+    today.setMonth(today.getMonth() - 6);
     setStartDate(today);
 
-    
     setTimeout(() => {
       if (scrollContainerRef.current) {
-        const currentMonthPosition = 6 * 4.33 * 14; 
+        const currentMonthPosition = 6 * 4.33 * 14;
         scrollContainerRef.current.scrollLeft = currentMonthPosition;
       }
     }, 0);
   };
 
-  
   const isCurrentPeriodVisible = () => {
     const today = new Date();
     const currentMonth = today.getMonth();
@@ -193,7 +211,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     endDate.setMonth(endDate.getMonth() + fixedMonths);
 
     const startMonth = new Date(startDate);
-    startMonth.setMonth(startMonth.getMonth() + 5); 
+    startMonth.setMonth(startMonth.getMonth() + 5);
     const startMonthValue = startMonth.getMonth();
     const startYearValue = startMonth.getFullYear();
 
@@ -203,16 +221,12 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     );
   };
 
-  
   const generateCalendar = (): JSX.Element => {
-    
     const calendarStartDate = new Date(startDate);
 
-    
     const firstDayOfWeek = calendarStartDate.getDay();
     calendarStartDate.setDate(calendarStartDate.getDate() - firstDayOfWeek);
 
-    
     const weeks: JSX.Element[] = [];
     let currentDate = new Date(calendarStartDate);
 
@@ -224,23 +238,20 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
         const count = calendarData[dateString] || 0;
         const color = getColor(count, maxCount);
 
-        
         const isInRange =
           currentDate >= calendarStartDate && week < weeksToShow;
 
-        
         const isToday = dateString === formatDate(new Date());
 
         if (isInRange) {
           days.push(
             <div
-              key={dateString+day}
+              key={dateString + day}
               className={`w-2.5 h-2.5 m-0.5 rounded-sm cursor-pointer transition-all duration-200 hover:transform hover:scale-150 ${
                 isToday ? "ring-1 ring-blue-500" : ""
               }`}
               style={{ backgroundColor: color }}
               onMouseEnter={(e) => {
-                
                 const rect = e.currentTarget.getBoundingClientRect();
                 const calendarRect =
                   calendarRef.current?.getBoundingClientRect() || {
@@ -260,13 +271,11 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
             />
           );
         } else {
-          
           days.push(
             <div key={`empty-${week}-${day}`} className="w-2.5 h-2.5 m-0.5" />
           );
         }
 
-        
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
@@ -277,7 +286,6 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
       );
     }
 
-    
     const months: JSX.Element[] = [];
     const monthLabels: MonthLabel[] = [];
     currentDate = new Date(calendarStartDate);
@@ -285,8 +293,6 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     let currentMonth = currentDate.getMonth();
     let currentYear = currentDate.getFullYear();
 
-    
-    
     const daysPassedInFirstMonth = currentDate.getDate() - 1;
     const weeksPassedInFirstMonth = Math.floor(
       (daysPassedInFirstMonth + firstDayOfWeek) / 7
@@ -303,21 +309,18 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
         currentYear = currentDate.getFullYear();
         monthLabels.push({
           month: getMonthName(currentMonth, currentYear),
-          position: i / 7, 
+          position: i / 7,
         });
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    
     const filteredLabels = monthLabels.reduce(
       (acc: MonthLabel[], label, index) => {
-        
         if (index === 0) return [label];
 
-        
         const lastLabel = acc[acc.length - 1];
-        const minDistance = 2.5; 
+        const minDistance = 2.5;
 
         if (label.position - lastLabel.position >= minDistance) {
           acc.push(label);
@@ -333,7 +336,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
         <div
           key={`month-${index}`}
           className="text-xs text-gray-500 absolute top-0 whitespace-nowrap"
-          style={{ left: `${label.position * 14 + 12}px` }} 
+          style={{ left: `${label.position * 14 + 12}px` }}
         >
           {label.month}
         </div>
@@ -350,15 +353,13 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     );
   };
 
-  
   const renderTooltip = () => {
     if (!hoveredDate) return null;
 
-    
     const tooltipStyle: React.CSSProperties = {
       position: "absolute",
       left: `${hoveredDate.x}px`,
-      top: `${hoveredDate.y - 50}px`, 
+      top: `${hoveredDate.y - 50}px`,
     };
 
     return (
@@ -375,7 +376,6 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
     );
   };
 
-  
   const hideScrollbarStyle = `
     .hide-scrollbar::-webkit-scrollbar {
       height: 4px;
@@ -413,7 +413,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-3 relative">
+    <div className="bg-white rounded-lg shadow p-3 relative ">
       <style>{hideScrollbarStyle}</style>
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-bold flex items-center">
@@ -470,7 +470,7 @@ const IncidentCalendar: React.FC<IncidentCalendarProps> = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto hide-scrollbar">
+      <div className="overflow-x-auto hide-scrollbar flex justify-center">
         {generateCalendar()}
         {renderTooltip()}
       </div>

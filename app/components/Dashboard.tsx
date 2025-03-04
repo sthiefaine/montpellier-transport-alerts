@@ -44,7 +44,6 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-
 const StatCardSkeleton = () => (
   <div className="bg-white rounded-lg shadow p-3 animate-pulse">
     <div className="flex items-center">
@@ -57,8 +56,7 @@ const StatCardSkeleton = () => (
   </div>
 );
 
-
-const ChartSkeleton = ({title}: {title: string}) => (
+const ChartSkeleton = ({ title }: { title: string }) => (
   <div className="bg-white rounded-lg shadow p-3">
     <h3 className="text-sm font-bold mb-2">{title}</h3>
     <div className="h-80 flex items-center justify-center">
@@ -72,8 +70,7 @@ const ChartSkeleton = ({title}: {title: string}) => (
   </div>
 );
 
-
-const TableSkeleton = ({title}: {title: string}) => (
+const TableSkeleton = ({ title }: { title: string }) => (
   <div className="bg-white rounded-lg shadow p-3">
     <h3 className="text-sm font-bold mb-2">{title}</h3>
     <div className="animate-pulse">
@@ -85,7 +82,6 @@ const TableSkeleton = ({title}: {title: string}) => (
   </div>
 );
 
-
 const MapSkeleton = () => (
   <div className="bg-white rounded-lg shadow p-3">
     <h3 className="text-sm font-bold mb-2">Carte du réseau de tramway</h3>
@@ -94,7 +90,6 @@ const MapSkeleton = () => (
     </div>
   </div>
 );
-
 
 const CalendarSkeleton = () => (
   <div className="bg-white rounded-lg shadow p-3">
@@ -116,12 +111,13 @@ const CalendarSkeleton = () => (
   </div>
 );
 
-
 type DashboardProps = {
-  setActiveTab: (value: SetStateAction<"activeAlerts" | "dashboard" | "completedAlerts">) => void
-}
+  setActiveTab: (
+    value: SetStateAction<"activeAlerts" | "dashboard" | "completedAlerts">
+  ) => void;
+};
 
-export default function Dashboard({setActiveTab}: DashboardProps) {
+export default function Dashboard({ setActiveTab }: DashboardProps) {
   const [showAllStats, setShowAllStats] = useState<boolean>(true);
 
   const {
@@ -148,7 +144,6 @@ export default function Dashboard({setActiveTab}: DashboardProps) {
     mutate();
   };
 
-  
   const effectData =
     !isLoading && stats?.effectCounts && Array.isArray(stats.effectCounts)
       ? stats.effectCounts.map((item, index) => ({
@@ -191,8 +186,10 @@ export default function Dashboard({setActiveTab}: DashboardProps) {
           className="flex items-center text-blue-500 hover:text-blue-700 text-sm"
           disabled={isLoading}
         >
-          <RefreshCw className={`w-3 h-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Chargement...' : 'Rafraîchir'}
+          <RefreshCw
+            className={`w-3 h-3 mr-1 ${isLoading ? "animate-spin" : ""}`}
+          />
+          {isLoading ? "Chargement..." : "Rafraîchir"}
         </button>
       </div>
 
@@ -233,7 +230,10 @@ export default function Dashboard({setActiveTab}: DashboardProps) {
         ) : (
           <>
             <div className="bg-white rounded-lg shadow p-3 cursor-pointer">
-              <div className="flex items-center" onClick={() => setActiveTab('activeAlerts')}>
+              <div
+                className="flex items-center"
+                onClick={() => setActiveTab("activeAlerts")}
+              >
                 <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
                 <div>
                   <h3 className="text-gray-500 text-xs">Alertes actives</h3>
@@ -243,11 +243,16 @@ export default function Dashboard({setActiveTab}: DashboardProps) {
             </div>
 
             <div className="bg-white rounded-lg shadow p-3 cursor-pointer">
-              <div className="flex items-center" onClick={() => setActiveTab('completedAlerts')}>
+              <div
+                className="flex items-center"
+                onClick={() => setActiveTab("completedAlerts")}
+              >
                 <History className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
                 <div>
                   <h3 className="text-gray-500 text-xs">Alertes terminées</h3>
-                  <p className="text-xl font-bold">{stats.completedCount || 0}</p>
+                  <p className="text-xl font-bold">
+                    {stats.completedCount || 0}
+                  </p>
                 </div>
               </div>
             </div>
@@ -307,7 +312,9 @@ export default function Dashboard({setActiveTab}: DashboardProps) {
               {effectData.length > 0 ? (
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                    <PieChart
+                      margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                    >
                       <Pie
                         data={effectData}
                         cx="50%"
@@ -378,7 +385,9 @@ export default function Dashboard({setActiveTab}: DashboardProps) {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gray-100">
-                        <th className="py-2 px-2 text-left font-medium">Routes</th>
+                        <th className="py-2 px-2 text-left font-medium">
+                          Routes
+                        </th>
                         <th className="py-2 px-2 text-right w-16 font-medium">
                           Nombre
                         </th>
@@ -433,31 +442,34 @@ export default function Dashboard({setActiveTab}: DashboardProps) {
         </div>
       )}
 
-      {/* Carte du réseau de tramway */}
-      {tramLinesLoading ? (
-        <MapSkeleton />
-      ) : (
-        <div className="bg-white rounded-lg shadow p-3">
-          <h3 className="text-sm font-bold mb-2">Carte du réseau de tramway</h3>
-          {tramLinesData ? (
-            <TramMap tramLinesData={tramLinesData} height="400px" />
-          ) : (
-            <div className="h-[400px] bg-gray-100 rounded flex items-center justify-center text-gray-500">
-              {tramLinesError
-                ? "Impossible de charger la carte du réseau de tramway."
-                : "Chargement de la carte..."}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+        {tramLinesLoading ? (
+          <MapSkeleton />
+        ) : (
+          <div className="bg-white rounded-lg shadow p-3">
+            <h3 className="text-sm font-bold mb-2">
+              Carte du réseau de tramway
+            </h3>
+            {tramLinesData ? (
+              <TramMap tramLinesData={tramLinesData} height="400px" />
+            ) : (
+              <div className="h-[400px] bg-gray-100 rounded flex items-center justify-center text-gray-500">
+                {tramLinesError
+                  ? "Impossible de charger la carte du réseau de tramway."
+                  : "Chargement de la carte..."}
+              </div>
+            )}
+          </div>
+        )}
 
-      {/* Résumé des lignes de tramway */}
-      <div className="bg-white rounded-lg shadow p-3">
-        <TramLineSummary
-          tramLinesData={tramLinesData}
-          isLoading={tramLinesLoading}
-          error={tramLinesError}
-        />
+        {/* Résumé des lignes de tramway */}
+        <div className="bg-white rounded-lg shadow p-3">
+          <TramLineSummary
+            tramLinesData={tramLinesData}
+            isLoading={tramLinesLoading}
+            error={tramLinesError}
+          />
+        </div>
       </div>
     </div>
   );
