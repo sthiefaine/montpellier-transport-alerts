@@ -127,8 +127,8 @@ model DailyMetric {
   maxDelay   Int      @map("max_delay")
   minDelay   Int      @map("min_delay")
 
-  onTimeRate60 Float @map("on_time_rate") 
-  lateRate60   Float @map("late_rate") 
+  onTimeRate60 Float @map("on_time_rate")
+  lateRate60   Float @map("late_rate")
   earlyRate60  Float @map("early_rate")
 
   onTimeRate30 Float @default(0) @map("on_time_rate_30") // % de passages à l'heure (-30s à +30s)
@@ -147,8 +147,9 @@ model DailyMetric {
   delay120to300s Float @default(0) @map("delay_120_to_300s") // % des passages avec retard entre 2min et 5min
   delayOver300s  Float @default(0) @map("delay_over_300s") // % des passages avec retard > 5min
 
-  createdAt DateTime @default(now()) @map("created_at")
-  route     Route    @relation(fields: [routeId], references: [id])
+  createdAt      DateTime             @default(now()) @map("created_at")
+  route          Route                @relation(fields: [routeId], references: [id])
+  weatherImpacts DailyWeatherImpact[]
 
   @@unique([date, routeId])
   @@index([date])
@@ -184,8 +185,9 @@ model HourlyMetric {
   delay120to300s Float @default(0) @map("delay_120_to_300s")
   delayOver300s  Float @default(0) @map("delay_over_300s")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  route     Route    @relation(fields: [routeId], references: [id])
+  createdAt      DateTime              @default(now()) @map("created_at")
+  route          Route                 @relation(fields: [routeId], references: [id])
+  weatherImpacts HourlyWeatherImpact[]
 
   @@unique([date, hour, routeId])
   @@index([date, hour])
@@ -245,4 +247,72 @@ model StopSequence {
   @@index([routeId, directionId])
   @@index([stopId])
   @@map("stop_sequences")
+}
+
+model WeatherData {
+  id   Int      @id @default(autoincrement())
+  date DateTime @db.Date // Date des données météo
+  hour Int? // Heure (0-23), null pour les données journalières
+
+  // Données météorologiques principales
+  temperature   Float // Température en °C
+  precipitation Float // Précipitations en mm
+  windSpeed     Float  @map("wind_speed") // Vitesse du vent en km/h
+  humidity      Float // Humidité relative en %
+  cloudCover    Float  @map("cloud_cover") // Couverture nuageuse en %
+  weatherCode   Int    @map("weather_code") // Code WMO du temps
+  weatherType   String @map("weather_type") // Description lisible du temps
+
+  // Données additionnelles
+  snowDepth Float?  @map("snow_depth") // Épaisseur de neige en mm, si applicable
+  snowfall  Float? // Chutes de neige en mm, si applicable
+  isRain    Boolean @default(false) // Indique s'il pleut
+  isSnow    Boolean @default(false) // Indique s'il neige
+  isFog     Boolean @default(false) // Indique s'il y a du brouillard
+  isStorm   Boolean @default(false) // Indique s'il y a un orage
+
+  // Métadonnées
+  location  String // Identifiant de la zone géographique
+  latitude  Float // Latitude du point de mesure
+  longitude Float // Longitude du point de mesure
+  source    String   @default("open-meteo") // Source des données
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations avec les métriques de transport
+  dailyMetrics  DailyWeatherImpact[]
+  hourlyMetrics HourlyWeatherImpact[]
+
+  @@unique([date, hour, location])
+  @@index([date])
+  @@index([location])
+  @@index([weatherCode])
+  @@index([date, location])
+  @@map("weather_data")
+}
+
+// Tables d'association pour les relations météo-performances
+model DailyWeatherImpact {
+  id            Int    @id @default(autoincrement())
+  dailyMetricId Int    @map("daily_metric_id")
+  weatherId     Int    @map("weather_id")
+  impactScore   Float? @map("impact_score") // Score calculé de l'impact (0-1)
+
+  dailyMetric DailyMetric @relation(fields: [dailyMetricId], references: [id])
+  weather     WeatherData @relation(fields: [weatherId], references: [id])
+
+  @@unique([dailyMetricId, weatherId])
+  @@map("daily_weather_impacts")
+}
+
+model HourlyWeatherImpact {
+  id             Int    @id @default(autoincrement())
+  hourlyMetricId Int    @map("hourly_metric_id")
+  weatherId      Int    @map("weather_id")
+  impactScore    Float? @map("impact_score") // Score calculé de l'impact (0-1)
+
+  hourlyMetric HourlyMetric @relation(fields: [hourlyMetricId], references: [id])
+  weather      WeatherData  @relation(fields: [weatherId], references: [id])
+
+  @@unique([hourlyMetricId, weatherId])
+  @@map("hourly_weather_impacts")
 }

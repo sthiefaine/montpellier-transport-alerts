@@ -32,6 +32,14 @@
     {
       "path": "/api/gtfs/metrics/compute-detailed",
       "schedule": "20 4 * * *"
+    },
+    {
+      "path": "/api/gtfs/weather/collect",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/gtfs/weather/analyze",
+      "schedule": "0 5 * * *"
     }
   ]
 }
