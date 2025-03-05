@@ -110,9 +110,9 @@ export async function GET(request: Request) {
           avgDelay: metric.avgDelay,
           maxDelay: metric.maxDelay,
           minDelay: metric.minDelay,
-          onTimeRate: metric.onTimeRate,
-          lateRate: metric.lateRate,
-          earlyRate: metric.earlyRate,
+          onTimeRate: metric.onTimeRate60,
+          lateRate: metric.lateRate60,
+          earlyRate: metric.earlyRate60,
         },
       }))
     );

@@ -77,9 +77,9 @@ export async function GET(request: Request) {
           maxDelay: metric.maxDelay,
           minDelay: metric.minDelay,
           observations: metric.observations,
-          onTimeRate: metric.onTimeRate,
-          lateRate: metric.lateRate,
-          earlyRate: metric.earlyRate,
+          onTimeRate: metric.onTimeRate60,
+          lateRate: metric.lateRate60,
+          earlyRate: metric.earlyRate60,
         })),
       };
 
@@ -107,9 +107,9 @@ export async function GET(request: Request) {
           maxDelay: metric.maxDelay,
           minDelay: metric.minDelay,
           observations: metric.observations,
-          onTimeRate: metric.onTimeRate,
-          lateRate: metric.lateRate,
-          earlyRate: metric.earlyRate,
+          onTimeRate: metric.onTimeRate60,
+          lateRate: metric.lateRate60,
+          earlyRate: metric.earlyRate60,
         });
       });
 

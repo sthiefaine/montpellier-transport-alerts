@@ -125,6 +125,14 @@ export async function GET(request: Request) {
             date: startDate,
             routeId,
             ...sanitizedMetric,
+            onTimeRate60: sanitizedMetric.onTimeRate,
+            lateRate60: sanitizedMetric.lateRate,
+            earlyRate60: sanitizedMetric.earlyRate,
+            route: {
+              connect: {
+                id: routeId
+              }
+            }
           },
         });
 

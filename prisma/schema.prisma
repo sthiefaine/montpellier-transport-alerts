@@ -41,7 +41,8 @@ model Stop {
   stopTimes      StopTime[]
   realTimeDelays RealtimeDelay[]
   stopMetrics    StopMetric[]
-  stopSequences   StopSequence[]
+  stopSequences  StopSequence[]
+
   @@map("stops")
 }
 
@@ -118,18 +119,36 @@ model RealtimeDelay {
 
 model DailyMetric {
   id         Int      @id @default(autoincrement())
-  date       DateTime @db.Date // Jour concerné par les métriques
+  date       DateTime @db.Date
   routeId    String   @map("route_id")
   totalTrips Int      @map("total_trips")
   totalStops Int      @map("total_stops")
   avgDelay   Float    @map("avg_delay")
   maxDelay   Int      @map("max_delay")
   minDelay   Int      @map("min_delay")
-  onTimeRate Float    @map("on_time_rate") // % de passages à l'heure (-60s à +60s)
-  lateRate   Float    @map("late_rate") // % de passages en retard (>60s)
-  earlyRate  Float    @map("early_rate") // % de passages en avance (<-60s)
-  createdAt  DateTime @default(now()) @map("created_at")
-  route      Route    @relation(fields: [routeId], references: [id])
+
+  onTimeRate60 Float @map("on_time_rate") 
+  lateRate60   Float @map("late_rate") 
+  earlyRate60  Float @map("early_rate")
+
+  onTimeRate30 Float @default(0) @map("on_time_rate_30") // % de passages à l'heure (-30s à +30s)
+  lateRate30   Float @default(0) @map("late_rate_30") // % de passages en retard (>30s)
+  earlyRate30  Float @default(0) @map("early_rate_30") // % de passages en avance (<-30s)
+
+  // Seuil plus souple (120s)
+  onTimeRate120 Float @default(0) @map("on_time_rate_120") // % de passages à l'heure (-120s à +120s)
+  lateRate120   Float @default(0) @map("late_rate_120") // % de passages en retard (>120s)
+  earlyRate120  Float @default(0) @map("early_rate_120") // % de passages en avance (<-120s)
+
+  // Proportions des retards par catégorie
+  delayUnder30s  Float @default(0) @map("delay_under_30s") // % des passages avec retard entre 0 et 30s
+  delay30to60s   Float @default(0) @map("delay_30_to_60s") // % des passages avec retard entre 30s et 60s
+  delay60to120s  Float @default(0) @map("delay_60_to_120s") // % des passages avec retard entre 60s et 120s
+  delay120to300s Float @default(0) @map("delay_120_to_300s") // % des passages avec retard entre 2min et 5min
+  delayOver300s  Float @default(0) @map("delay_over_300s") // % des passages avec retard > 5min
+
+  createdAt DateTime @default(now()) @map("created_at")
+  route     Route    @relation(fields: [routeId], references: [id])
 
   @@unique([date, routeId])
   @@index([date])
@@ -139,18 +158,34 @@ model DailyMetric {
 
 model HourlyMetric {
   id           Int      @id @default(autoincrement())
-  date         DateTime @db.Date // Jour concerné
-  hour         Int // Heure de la journée (0-23)
+  date         DateTime @db.Date
+  hour         Int
   routeId      String   @map("route_id")
   avgDelay     Float    @map("avg_delay")
   maxDelay     Int      @map("max_delay")
   minDelay     Int      @map("min_delay")
-  observations Int // Nombre d'observations
-  onTimeRate   Float    @map("on_time_rate")
-  lateRate     Float    @map("late_rate")
-  earlyRate    Float    @map("early_rate")
-  createdAt    DateTime @default(now()) @map("created_at")
-  route        Route    @relation(fields: [routeId], references: [id])
+  observations Int
+
+  onTimeRate60 Float @map("on_time_rate")
+  lateRate60   Float @map("late_rate")
+  earlyRate60  Float @map("early_rate")
+
+  onTimeRate30 Float @default(0) @map("on_time_rate_30")
+  lateRate30   Float @default(0) @map("late_rate_30")
+  earlyRate30  Float @default(0) @map("early_rate_30")
+
+  onTimeRate120 Float @default(0) @map("on_time_rate_120")
+  lateRate120   Float @default(0) @map("late_rate_120")
+  earlyRate120  Float @default(0) @map("early_rate_120")
+
+  delayUnder30s  Float @default(0) @map("delay_under_30s")
+  delay30to60s   Float @default(0) @map("delay_30_to_60s")
+  delay60to120s  Float @default(0) @map("delay_60_to_120s")
+  delay120to300s Float @default(0) @map("delay_120_to_300s")
+  delayOver300s  Float @default(0) @map("delay_over_300s")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  route     Route    @relation(fields: [routeId], references: [id])
 
   @@unique([date, hour, routeId])
   @@index([date, hour])

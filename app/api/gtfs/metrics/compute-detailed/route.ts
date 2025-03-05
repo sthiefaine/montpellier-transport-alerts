@@ -111,12 +111,11 @@ export async function GET(request: Request) {
               maxDelay: Number(stats.max_delay || 0),
               minDelay: Number(stats.min_delay || 0),
               observations: Number(stats.observations || 0),
-              onTimeRate: Number(stats.on_time_rate || 0),
-              lateRate: Number(stats.late_rate || 0),
-              earlyRate: Number(stats.early_rate || 0)
+              onTimeRate60: Number(stats.on_time_rate || 0),
+              lateRate60: Number(stats.late_rate || 0),
+              earlyRate60: Number(stats.early_rate || 0)
             }
           });
-          
           stats.hourlyMetrics++;
         }
       }
