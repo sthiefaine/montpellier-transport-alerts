@@ -71,14 +71,15 @@ export async function GET(request: Request) {
       };
     }
 
-    // Ajouter une organisation
-    const orderBy: any = { date: "desc" };
+    // Définir le tri à utiliser
+    let orderBy: any;
     if (routeId) {
-      // Si on filtre par ligne, trier par date
-      orderBy.date = "desc";
+      // Si on filtre par ligne, trier par date uniquement
+      orderBy = { date: "desc" };
     } else {
       // Sinon, trier par date puis par routeId
-      orderBy.routeId = "asc";
+      // CORRECTION : Utiliser un tableau d'objets pour le tri multiple
+      orderBy = [{ date: "desc" }, { routeId: "asc" }];
     }
 
     // Requête des métriques quotidiennes

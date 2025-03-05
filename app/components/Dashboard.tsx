@@ -25,6 +25,7 @@ import { useTramLines } from "@/services/tramLinesService";
 import TramLineSummary from "./Summary/TramLine";
 import TransportLinesIndicator from "./TransportLinesIndicator/TransportLinesIndicator";
 import DelayStatsSmall from "./DelayStats/DelayStatsSmall";
+import DelayStats from "./DelayStats/DelayStats";
 
 const COLORS = [
   "#FF0000",
@@ -339,7 +340,7 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
       {/* Indicateur de lignes de transport */}
       <TransportLinesIndicator activeAlerts={activeAlerts} />
 
-      <DelayStatsSmall  />
+      <DelayStats  />
 
       {/* Graphiques Effets et Causes (2 x 2 sur les grands écrans) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
