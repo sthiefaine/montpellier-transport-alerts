@@ -79,74 +79,151 @@ export async function GET(request: Request) {
     for (const routeObj of routesWithData) {
       const routeId = routeObj.route_id;
 
-      // Calculer les métriques pour cette ligne
-      const metrics = await prisma.$queryRaw`
-        SELECT
-          COUNT(DISTINCT rd."trip_id") AS total_trips,
-          COUNT(DISTINCT rd."stop_id") AS total_stops,
-          ROUND(AVG(rd."delay")::numeric, 1) AS avg_delay,
-          MAX(rd."delay") AS max_delay,
-          MIN(rd."delay") AS min_delay,
-          ROUND((COUNT(CASE WHEN rd."delay" BETWEEN -60 AND 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS on_time_rate,
-          ROUND((COUNT(CASE WHEN rd."delay" > 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS late_rate,
-          ROUND((COUNT(CASE WHEN rd."delay" < -60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS early_rate
-        FROM "realtime_delays" rd
-        WHERE rd."route_id" = ${routeId}
-        AND rd."collected_at" BETWEEN ${startDate} AND ${endDate}
-        AND rd."status" = 'SCHEDULED'
-      `;
+      try {
+        // Calculer les métriques pour cette ligne avec les différents seuils
+        const metrics = await prisma.$queryRaw`
+          SELECT
+            COUNT(DISTINCT rd."trip_id") AS total_trips,
+            COUNT(DISTINCT rd."stop_id") AS total_stops,
+            ROUND(AVG(rd."delay")::numeric, 1) AS avg_delay,
+            MAX(rd."delay") AS max_delay,
+            MIN(rd."delay") AS min_delay,
+            
+            -- Seuil 60s (standard)
+            ROUND((COUNT(CASE WHEN rd."delay" BETWEEN -60 AND 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS on_time_rate_60,
+            ROUND((COUNT(CASE WHEN rd."delay" > 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS late_rate_60,
+            ROUND((COUNT(CASE WHEN rd."delay" < -60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS early_rate_60,
+            
+            -- Seuil 30s (plus strict)
+            ROUND((COUNT(CASE WHEN rd."delay" BETWEEN -30 AND 30 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS on_time_rate_30,
+            ROUND((COUNT(CASE WHEN rd."delay" > 30 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS late_rate_30,
+            ROUND((COUNT(CASE WHEN rd."delay" < -30 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS early_rate_30,
+            
+            -- Seuil 120s (plus souple)
+            ROUND((COUNT(CASE WHEN rd."delay" BETWEEN -120 AND 120 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS on_time_rate_120,
+            ROUND((COUNT(CASE WHEN rd."delay" > 120 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS late_rate_120,
+            ROUND((COUNT(CASE WHEN rd."delay" < -120 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS early_rate_120,
+            
+            -- Répartition des retards par catégorie (seulement pour les retards positifs)
+            ROUND((COUNT(CASE WHEN rd."delay" >= 0 AND rd."delay" < 30 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS delay_under_30s,
+            ROUND((COUNT(CASE WHEN rd."delay" >= 30 AND rd."delay" < 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS delay_30_to_60s,
+            ROUND((COUNT(CASE WHEN rd."delay" >= 60 AND rd."delay" < 120 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS delay_60_to_120s,
+            ROUND((COUNT(CASE WHEN rd."delay" >= 120 AND rd."delay" < 300 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS delay_120_to_300s,
+            ROUND((COUNT(CASE WHEN rd."delay" >= 300 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1) AS delay_over_300s
+          FROM "realtime_delays" rd
+          WHERE rd."route_id" = ${routeId}
+          AND rd."collected_at" BETWEEN ${startDate} AND ${endDate}
+          AND rd."status" = 'SCHEDULED'
+        `;
 
-      if (Array.isArray(metrics) && metrics.length > 0) {
-        const metric = metrics[0];
+        if (Array.isArray(metrics) && metrics.length > 0) {
+          const metric = metrics[0];
 
-        // S'assurer que toutes les valeurs numériques sont converties correctement
-        const sanitizedMetric = {
-          totalTrips: Number(metric.total_trips || 0),
-          totalStops: Number(metric.total_stops || 0),
-          avgDelay: Number(metric.avg_delay || 0),
-          maxDelay: Number(metric.max_delay || 0),
-          minDelay: Number(metric.min_delay || 0),
-          onTimeRate: Number(metric.on_time_rate || 0),
-          lateRate: Number(metric.late_rate || 0),
-          earlyRate: Number(metric.early_rate || 0),
-        };
+          // Vérifier si nous avons au moins quelques observations
+          if (Number(metric.total_trips) === 0) {
+            console.log(
+              `Ligne ${routeId}: aucun trajet observé, métrique ignorée`
+            );
+            continue;
+          }
 
-        // Supprimer toute entrée existante pour cette combinaison date/route
-        await prisma.dailyMetric.deleteMany({
-          where: {
-            date: startDate,
-            routeId,
-          },
-        });
+          // S'assurer que toutes les valeurs numériques sont converties correctement
+          // et prévoir des valeurs par défaut pour éviter les nulls
+          const sanitizedMetric = {
+            totalTrips: Number(metric.total_trips || 0),
+            totalStops: Number(metric.total_stops || 0),
+            avgDelay: Number(metric.avg_delay || 0),
+            maxDelay: Number(metric.max_delay || 0),
+            minDelay: Number(metric.min_delay || 0),
+            // Seuil 60s
+            onTimeRate60: Number(metric.on_time_rate_60 || 0) / 100, // Convertir en décimal (0-1)
+            lateRate60: Number(metric.late_rate_60 || 0) / 100,
+            earlyRate60: Number(metric.early_rate_60 || 0) / 100,
+            // Seuil 30s
+            onTimeRate30: Number(metric.on_time_rate_30 || 0) / 100,
+            lateRate30: Number(metric.late_rate_30 || 0) / 100,
+            earlyRate30: Number(metric.early_rate_30 || 0) / 100,
+            // Seuil 120s
+            onTimeRate120: Number(metric.on_time_rate_120 || 0) / 100,
+            lateRate120: Number(metric.late_rate_120 || 0) / 100,
+            earlyRate120: Number(metric.early_rate_120 || 0) / 100,
+            // Répartition des retards
+            delayUnder30s: Number(metric.delay_under_30s || 0) / 100,
+            delay30to60s: Number(metric.delay_30_to_60s || 0) / 100,
+            delay60to120s: Number(metric.delay_60_to_120s || 0) / 100,
+            delay120to300s: Number(metric.delay_120_to_300s || 0) / 100,
+            delayOver300s: Number(metric.delay_over_300s || 0) / 100,
+          };
 
-        // Insérer la nouvelle métrique
-        const result = await prisma.dailyMetric.create({
-          data: {
-            date: startDate,
-            routeId,
-            ...sanitizedMetric,
-            onTimeRate60: sanitizedMetric.onTimeRate,
-            lateRate60: sanitizedMetric.lateRate,
-            earlyRate60: sanitizedMetric.earlyRate,
-            route: {
-              connect: {
-                id: routeId
-              }
-            }
-          },
-        });
+          // Supprimer toute entrée existante pour cette combinaison date/route
+          await prisma.dailyMetric.deleteMany({
+            where: {
+              date: startDate,
+              routeId,
+            },
+          });
 
-        results.push(result);
-        totalProcessed++;
+          // Insérer la nouvelle métrique en utilisant route.connect plutôt que routeId direct
+          const result = await prisma.dailyMetric.create({
+            data: {
+              date: startDate,
+              totalTrips: sanitizedMetric.totalTrips,
+              totalStops: sanitizedMetric.totalStops,
+              avgDelay: sanitizedMetric.avgDelay,
+              maxDelay: sanitizedMetric.maxDelay,
+              minDelay: sanitizedMetric.minDelay,
+              // Seuil 60s
+              onTimeRate60: sanitizedMetric.onTimeRate60,
+              lateRate60: sanitizedMetric.lateRate60,
+              earlyRate60: sanitizedMetric.earlyRate60,
+              // Seuil 30s
+              onTimeRate30: sanitizedMetric.onTimeRate30,
+              lateRate30: sanitizedMetric.lateRate30,
+              earlyRate30: sanitizedMetric.earlyRate30,
+              // Seuil 120s
+              onTimeRate120: sanitizedMetric.onTimeRate120,
+              lateRate120: sanitizedMetric.lateRate120,
+              earlyRate120: sanitizedMetric.earlyRate120,
+              // Répartition des retards
+              delayUnder30s: sanitizedMetric.delayUnder30s,
+              delay30to60s: sanitizedMetric.delay30to60s,
+              delay60to120s: sanitizedMetric.delay60to120s,
+              delay120to300s: sanitizedMetric.delay120to300s,
+              delayOver300s: sanitizedMetric.delayOver300s,
+              // Relation avec la route (plutôt que routeId direct)
+              route: {
+                connect: {
+                  id: routeId,
+                },
+              },
+            },
+          });
+
+          console.log(
+            `Métriques calculées pour ligne ${routeId}: ${
+              sanitizedMetric.totalTrips
+            } trajets, ponctualité: ${(
+              sanitizedMetric.onTimeRate60 * 100
+            ).toFixed(1)}%`
+          );
+          results.push(result);
+          totalProcessed++;
+        } else {
+          console.log(`Ligne ${routeId}: aucune donnée de retard trouvée`);
+        }
+      } catch (error) {
+        console.error(
+          `Erreur lors du calcul des métriques pour la ligne ${routeId}:`,
+          error
+        );
+        // Continuer avec la prochaine ligne au lieu d'échouer complètement
+        continue;
       }
     }
 
     console.log(
       `Métriques calculées et enregistrées pour ${totalProcessed} lignes`
     );
-
-    // Optionnel: supprimer les données brutes plus anciennes que X jours
-    // Cette étape est déjà gérée dans la collecte temps réel, mais vous pourriez la déplacer ici
 
     return NextResponse.json({
       status: "success",

@@ -6,6 +6,17 @@ export function determineCauseByKeywords(
   const lowerHeader = (headerText || "").toLowerCase();
   const fullText = lowerDesc + " " + lowerHeader;
 
+  // not real gtfs cause enum
+  // http://gtfs.org/fr/documentation/realtime/reference/
+  //
+  if (
+    fullText.includes("condition") &&
+    fullText.includes("circulation") &&
+    fullText.includes("difficile")
+  ) {
+    return "TRAFFIC_JAM";
+  }
+
   if (
     fullText.includes("secours") ||
     fullText.includes("ambulance") ||

@@ -18,13 +18,13 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { AlertStats, AlertEffect, AlertCause } from "@/lib/types";
-import { getAlertEffectLabel } from "@/lib/utils";
+import { getAlertCauseLabel, getAlertEffectLabel } from "@/lib/utils";
 import IncidentCalendar from "./IncidentCalendar";
 import TramMap from "./TramMap";
 import { useTramLines } from "@/services/tramLinesService";
 import TramLineSummary from "./Summary/TramLine";
 import TransportLinesIndicator from "./TransportLinesIndicator/TransportLinesIndicator";
-import DelayStats from "./DelayStats/DelayStats";
+import DelayStatsSmall from "./DelayStats/DelayStatsSmall";
 
 const COLORS = [
   "#FF0000",
@@ -63,27 +63,6 @@ const fetcher = async (url: string) => {
   if (!res.ok) throw new Error("Erreur lors du fetch");
   return res.json();
 };
-
-// Fonction pour obtenir le libellé lisible d'une cause
-const getAlertCauseLabel = (cause: AlertCause): string => {
-  const causeLabels: Record<string, string> = {
-    [AlertCause.UNKNOWN_CAUSE]: "Cause inconnue",
-    [AlertCause.OTHER_CAUSE]: "Autre cause",
-    [AlertCause.TECHNICAL_PROBLEM]: "Problème technique",
-    [AlertCause.STRIKE]: "Grève",
-    [AlertCause.DEMONSTRATION]: "Manifestation",
-    [AlertCause.ACCIDENT]: "Accident",
-    [AlertCause.HOLIDAY]: "Événement festif",
-    [AlertCause.WEATHER]: "Conditions météo",
-    [AlertCause.MAINTENANCE]: "Maintenance",
-    [AlertCause.CONSTRUCTION]: "Travaux",
-    [AlertCause.POLICE_ACTIVITY]: "Activité policière",
-    [AlertCause.MEDICAL_EMERGENCY]: "Urgence médicale",
-  };
-
-  return causeLabels[cause] || cause;
-};
-
 const StatCardSkeleton = () => (
   <div className="bg-white rounded-lg shadow p-3 animate-pulse">
     <div className="flex items-center">
@@ -360,7 +339,7 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
       {/* Indicateur de lignes de transport */}
       <TransportLinesIndicator activeAlerts={activeAlerts} />
 
-      <DelayStats />
+      <DelayStatsSmall  />
 
       {/* Graphiques Effets et Causes (2 x 2 sur les grands écrans) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

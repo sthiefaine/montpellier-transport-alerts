@@ -16,7 +16,8 @@ export function getAlertCauseLabel(cause: AlertCause): string {
     [AlertCause.MAINTENANCE]: 'Maintenance',
     [AlertCause.CONSTRUCTION]: 'Travaux',
     [AlertCause.POLICE_ACTIVITY]: 'Activité policière',
-    [AlertCause.MEDICAL_EMERGENCY]: 'Urgence médicale'
+    [AlertCause.MEDICAL_EMERGENCY]: 'Urgence médicale',
+    [AlertCause.TRAFFIC_JAM]: "Circulation difficile",
   };
 
   return labels[cause] || 'Inconnu';

@@ -26,20 +26,28 @@
       "schedule": "*/10 0-4 * * *"
     },
     {
-      "path": "/api/gtfs/metrics/compute-daily",
-      "schedule": "10 4 * * *"
-    },
-    {
-      "path": "/api/gtfs/metrics/compute-detailed",
-      "schedule": "20 4 * * *"
-    },
-    {
       "path": "/api/gtfs/weather/collect",
       "schedule": "0 1 * * *"
     },
     {
+      "path": "/api/gtfs/metrics/compute-daily",
+      "schedule": "10 4 * * *"
+    },
+    {
+      "path": "/api/gtfs/metrics/compute-hourly",
+      "schedule": "15 4 * * *"
+    },
+    {
+      "path": "/api/gtfs/metrics/compute-detailed",
+      "schedule": "25 4 * * *"
+    },
+    {
       "path": "/api/gtfs/weather/analyze",
-      "schedule": "0 5 * * *"
+      "schedule": "35 4 * * *"
+    },
+    {
+      "path": "/api/gtfs/metrics/with-threshold?threshold=60",
+      "schedule": "0 5 * * 1"
     }
   ]
 }
