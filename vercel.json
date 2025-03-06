@@ -46,6 +46,10 @@
       "schedule": "35 4 * * *"
     },
     {
+      "path": "/api/gtfs/cleanup-realtime",
+      "schedule": "45 4 * * *"
+    },
+    {
       "path": "/api/gtfs/metrics/with-threshold?threshold=60",
       "schedule": "0 5 * * 1"
     }
