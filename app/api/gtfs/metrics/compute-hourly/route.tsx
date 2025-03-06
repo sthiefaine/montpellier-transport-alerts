@@ -1,4 +1,5 @@
 // app/api/gtfs/metrics/compute-hourly/route.ts
+export const maxDuration = 300
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 

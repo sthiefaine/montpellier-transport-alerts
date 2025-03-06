@@ -1,4 +1,4 @@
-export const maxDuration = 300
+export const maxDuration = 300;
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
@@ -15,11 +15,11 @@ const IMPORT_TOKEN = process.env.CRON_SECRET;
 // Fonction pour vérifier l'authentification
 function validateAuth(request: Request) {
   // Vérifier l'en-tête d'autorisation
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return false;
   }
-  
+
   const token = authHeader.substring(7); // Extraire le token après "Bearer "
   return token === IMPORT_TOKEN;
 }
@@ -97,6 +97,9 @@ async function processImport() {
     // Importer les voyages (trips)
     await importTrips(tempDir);
 
+    // Si vous voulez importer les horaires également
+    // await importStopTimes(tempDir);
+
     return NextResponse.json({
       status: "success",
       message: "Importation GTFS terminée",
@@ -110,7 +113,6 @@ async function processImport() {
 }
 
 async function importStops(extractionPath: string) {
-  // Code inchangé
   console.log("Importation des arrêts...");
   const results: any[] = [];
 
@@ -120,7 +122,8 @@ async function importStops(extractionPath: string) {
       .on("data", (data: any) => results.push(data))
       .on("end", async () => {
         try {
-          // Vider la table des arrêts
+          // Avec le schéma mis à jour avec onDelete: Cascade,
+          // nous pouvons simplement supprimer tous les arrêts
           await prisma.stop.deleteMany({});
 
           // Importer les arrêts par lots
@@ -166,7 +169,6 @@ async function importStops(extractionPath: string) {
 }
 
 async function importRoutes(extractionPath: string) {
-  // Code inchangé
   console.log("Importation des lignes (routes)...");
   const results: any[] = [];
 
@@ -176,7 +178,7 @@ async function importRoutes(extractionPath: string) {
       .on("data", (data) => results.push(data))
       .on("end", async () => {
         try {
-          // Vider la table des routes
+          // Avec le schéma mis à jour, nous pouvons simplement supprimer toutes les routes
           await prisma.route.deleteMany({});
 
           // Importer les routes par lots
@@ -216,7 +218,6 @@ async function importRoutes(extractionPath: string) {
 }
 
 async function importTrips(extractionPath: string) {
-  // Code inchangé
   console.log("Importation des voyages (trips)...");
   const results: any[] = [];
 
@@ -226,6 +227,7 @@ async function importTrips(extractionPath: string) {
       .on("data", (data) => results.push(data))
       .on("end", async () => {
         try {
+          // Avec le schéma mis à jour, nous pouvons simplement supprimer tous les voyages
           await prisma.trip.deleteMany({});
 
           const batchSize = 100;
@@ -275,9 +277,7 @@ async function importTrips(extractionPath: string) {
   });
 }
 
-// Si vous voulez être complet, vous pourriez également ajouter cette fonction pour les horaires
 async function importStopTimes(extractionPath: string) {
-  // Code inchangé
   console.log("Importation des horaires (stop_times)...");
   const results: any[] = [];
 
@@ -287,10 +287,10 @@ async function importStopTimes(extractionPath: string) {
       .on("data", (data) => results.push(data))
       .on("end", async () => {
         try {
-          // Vider la table des horaires
+          // Avec le schéma mis à jour, nous pouvons simplement supprimer tous les horaires
           await prisma.stopTime.deleteMany({});
 
-          // Importer les horaires par lots (plus petits car c'est généralement un fichier très volumineux)
+          // Importer les horaires par lots
           const batchSize = 100;
           for (let i = 0; i < results.length; i += batchSize) {
             const batch = results.slice(i, i + batchSize);

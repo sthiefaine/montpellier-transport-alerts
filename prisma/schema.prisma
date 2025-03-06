@@ -74,7 +74,7 @@ model Trip {
   shapeId              String?         @map("shape_id")
   wheelchairAccessible Int?            @map("wheelchair_accessible")
   bikesAllowed         Int?            @map("bikes_allowed")
-  route                Route           @relation(fields: [routeId], references: [id])
+  route                Route           @relation(fields: [routeId], references: [id], onDelete: Cascade)
   stopTimes            StopTime[]
   realTimeDelays       RealtimeDelay[]
 
@@ -89,8 +89,8 @@ model StopTime {
   stopSequence  Int    @map("stop_sequence")
   pickupType    Int?   @map("pickup_type")
   dropOffType   Int?   @map("drop_off_type")
-  trip          Trip   @relation(fields: [tripId], references: [id])
-  stop          Stop   @relation(fields: [stopId], references: [id])
+  trip          Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  stop          Stop   @relation(fields: [stopId], references: [id], onDelete: Cascade)
 
   @@id([tripId, stopSequence])
   @@map("stop_times")
@@ -106,9 +106,9 @@ model RealtimeDelay {
   actualTime    BigInt?  @map("actual_time")
   delay         Int?     @map("delay")
   status        String?  @map("status")
-  trip          Trip     @relation(fields: [tripId], references: [id])
-  route         Route    @relation(fields: [routeId], references: [id])
-  stop          Stop     @relation(fields: [stopId], references: [id])
+  trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  route         Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop          Stop     @relation(fields: [stopId], references: [id], onDelete: Cascade)
 
   @@index([tripId])
   @@index([routeId])
@@ -148,7 +148,7 @@ model DailyMetric {
   delayOver300s  Float @default(0) @map("delay_over_300s") // % des passages avec retard > 5min
 
   createdAt      DateTime             @default(now()) @map("created_at")
-  route          Route                @relation(fields: [routeId], references: [id])
+  route          Route                @relation(fields: [routeId], references: [id], onDelete: Cascade)
   weatherImpacts DailyWeatherImpact[]
 
   @@unique([date, routeId])
@@ -186,7 +186,7 @@ model HourlyMetric {
   delayOver300s  Float @default(0) @map("delay_over_300s")
 
   createdAt      DateTime              @default(now()) @map("created_at")
-  route          Route                 @relation(fields: [routeId], references: [id])
+  route          Route                 @relation(fields: [routeId], references: [id], onDelete: Cascade)
   weatherImpacts HourlyWeatherImpact[]
 
   @@unique([date, hour, routeId])
@@ -208,8 +208,8 @@ model StopMetric {
   lateRate     Float    @map("late_rate")
   earlyRate    Float    @map("early_rate")
   createdAt    DateTime @default(now()) @map("created_at")
-  route        Route    @relation(fields: [routeId], references: [id])
-  stop         Stop     @relation(fields: [stopId], references: [id])
+  route        Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop         Stop     @relation(fields: [stopId], references: [id], onDelete: Cascade)
 
   @@unique([date, routeId, stopId])
   @@index([date])
@@ -225,7 +225,7 @@ model RouteServiceTime {
   startTime String   @map("start_time") // Format "HH:MM:SS"
   endTime   String   @map("end_time") // Format "HH:MM:SS"
   createdAt DateTime @default(now()) @map("created_at")
-  route     Route    @relation(fields: [routeId], references: [id])
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
 
   @@unique([routeId, serviceId])
   @@index([routeId])
@@ -240,8 +240,8 @@ model StopSequence {
   position    Int // Position dans la séquence (1, 2, 3...)
   isTerminus  Boolean  @default(false) @map("is_terminus")
   createdAt   DateTime @default(now()) @map("created_at")
-  route       Route    @relation(fields: [routeId], references: [id])
-  stop        Stop     @relation(fields: [stopId], references: [id])
+  route       Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop        Stop     @relation(fields: [stopId], references: [id], onDelete: Cascade)
 
   @@unique([routeId, stopId, directionId])
   @@index([routeId, directionId])
@@ -297,8 +297,8 @@ model DailyWeatherImpact {
   weatherId     Int    @map("weather_id")
   impactScore   Float? @map("impact_score") // Score calculé de l'impact (0-1)
 
-  dailyMetric DailyMetric @relation(fields: [dailyMetricId], references: [id])
-  weather     WeatherData @relation(fields: [weatherId], references: [id])
+  dailyMetric DailyMetric @relation(fields: [dailyMetricId], references: [id], onDelete: Cascade)
+  weather     WeatherData @relation(fields: [weatherId], references: [id], onDelete: Cascade)
 
   @@unique([dailyMetricId, weatherId])
   @@map("daily_weather_impacts")
@@ -310,8 +310,8 @@ model HourlyWeatherImpact {
   weatherId      Int    @map("weather_id")
   impactScore    Float? @map("impact_score") // Score calculé de l'impact (0-1)
 
-  hourlyMetric HourlyMetric @relation(fields: [hourlyMetricId], references: [id])
-  weather      WeatherData  @relation(fields: [weatherId], references: [id])
+  hourlyMetric HourlyMetric @relation(fields: [hourlyMetricId], references: [id], onDelete: Cascade)
+  weather      WeatherData  @relation(fields: [weatherId], references: [id], onDelete: Cascade)
 
   @@unique([hourlyMetricId, weatherId])
   @@map("hourly_weather_impacts")
