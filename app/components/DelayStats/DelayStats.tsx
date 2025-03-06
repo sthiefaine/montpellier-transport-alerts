@@ -14,6 +14,8 @@ import {
   Legend,
 } from "recharts";
 import { Clock, ArrowUp, ArrowDown, AlertCircle } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import { formatReadableDate } from "../IncidentCalendar";
 
 // Types
 interface TransportLine {
@@ -53,6 +55,37 @@ export default function DelayStats() {
   const [delayData, setDelayData] = useState<DelayData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [period, setPeriod] = useState<PeriodType>("week");
+
+const [hourlyData, setHourlyData] = useState<any[]>([]);
+const [selectedDate, setSelectedDate] = useState<string>(new Date().toDateString());
+
+useEffect(() => {
+  // Fonction pour charger les données horaires
+  const fetchHourlyData = async () => {
+    try {
+      const response = await fetch(`/api/gtfs/metrics/hourly?date=${selectedDate}`);
+      const data = await response.json();
+      
+      // Transformer les données pour le graphique
+      const transformedData = Array.from(Array(24).keys())
+        .map(hour => {
+          const hourData = data.hourlyData?.find((d: any) => d.hour === hour);
+          return {
+            hour: `${hour}h`,
+            avgDelay: hourData?.avgDelay || 0,
+            onTimeRate: hourData ? (hourData.onTimeRate * 100) : 0
+          };
+        });
+        
+      setHourlyData(transformedData);
+    } catch (error) {
+      console.error("Erreur lors du chargement des données horaires:", error);
+    }
+  };
+  
+  fetchHourlyData();
+}, [selectedDate]);
+
 
   useEffect(() => {
     const fetchTransportLines = async () => {
@@ -362,67 +395,29 @@ export default function DelayStats() {
           </div>
 
           {/* Analyse par heure de la journée */}
-          <div className="bg-white rounded-lg shadow border border-gray-200">
-            <div className="border-b border-gray-200 p-4">
+          <div className="border-b border-gray-200 p-4">
+            <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">
                 Répartition des retards par heure
               </h3>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3 py-1 border rounded"
+              />
             </div>
-            <div className="p-4">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { hour: "6h", avgDelay: 25, onTimeRate: 90 },
-                      { hour: "7h", avgDelay: 38, onTimeRate: 85 },
-                      { hour: "8h", avgDelay: 52, onTimeRate: 78 },
-                      { hour: "9h", avgDelay: 47, onTimeRate: 80 },
-                      { hour: "10h", avgDelay: 32, onTimeRate: 88 },
-                      { hour: "11h", avgDelay: 28, onTimeRate: 92 },
-                      { hour: "12h", avgDelay: 45, onTimeRate: 82 },
-                      { hour: "13h", avgDelay: 42, onTimeRate: 85 },
-                      { hour: "14h", avgDelay: 30, onTimeRate: 89 },
-                      { hour: "15h", avgDelay: 35, onTimeRate: 87 },
-                      { hour: "16h", avgDelay: 43, onTimeRate: 83 },
-                      { hour: "17h", avgDelay: 65, onTimeRate: 68 },
-                      { hour: "18h", avgDelay: 58, onTimeRate: 72 },
-                      { hour: "19h", avgDelay: 43, onTimeRate: 80 },
-                      { hour: "20h", avgDelay: 30, onTimeRate: 90 },
-                      { hour: "21h", avgDelay: 22, onTimeRate: 94 },
-                      { hour: "22h", avgDelay: 18, onTimeRate: 96 },
-                    ]}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" />
-                    <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="#82ca9d"
-                      tickFormatter={(value) => `${value}%`}
-                    />
-                    <Tooltip />
-                    <Legend />
-                    <Bar
-                      yAxisId="left"
-                      dataKey="avgDelay"
-                      name="Retard moyen (sec)"
-                      fill="#8884d8"
-                    />
-                    <Bar
-                      yAxisId="right"
-                      dataKey="onTimeRate"
-                      name="Taux à l'heure (%)"
-                      fill="#82ca9d"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="mt-4 text-sm text-gray-600">
-                On observe des pics de retard aux heures de pointe (8h, 17h-18h)
-                quand le trafic est le plus dense. La ponctualité est meilleure
-                en dehors de ces périodes.
-              </p>
+          </div>
+          <div className="p-4">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={hourlyData}>
+                  {/* reste du code inchangé */}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-2 text-sm text-gray-500 text-center">
+              Données pour le {formatReadableDate(selectedDate)}
             </div>
           </div>
         </>

@@ -27,7 +27,7 @@ const formatDate = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
 
-const formatReadableDate = (dateStr: string): string => {
+export const formatReadableDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   return date.toLocaleDateString("fr-FR", {
     weekday: "long",

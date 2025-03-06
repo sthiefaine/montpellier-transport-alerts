@@ -35,7 +35,7 @@
     },
     {
       "path": "/api/gtfs/metrics/compute-hourly",
-      "schedule": "15 4 * * *"
+      "schedule": "5 * * * *"
     },
     {
       "path": "/api/gtfs/metrics/compute-detailed",

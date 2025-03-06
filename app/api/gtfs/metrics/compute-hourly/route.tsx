@@ -1,5 +1,5 @@
 // app/api/gtfs/metrics/compute-hourly/route.ts
-export const maxDuration = 300
+export const maxDuration = 300;
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
@@ -26,12 +26,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Par défaut, calculer pour hier (paramètre date optionnel pour recalculer un jour spécifique)
+    // Déterminer la date et l'heure cibles (heure précédente par défaut)
     const url = new URL(request.url);
     const dateParam = url.searchParams.get("date");
+    const hourParam = url.searchParams.get("hour");
+    const fullDayParam = url.searchParams.get("fullDay") === "true";
 
     let targetDate: Date;
+    let targetHour: number | null = null;
+
     if (dateParam) {
+      // Si une date est spécifiée
       targetDate = new Date(dateParam);
       if (isNaN(targetDate.getTime())) {
         return NextResponse.json(
@@ -39,42 +44,103 @@ export async function GET(request: Request) {
           { status: 400 }
         );
       }
+
+      // Si une heure est également spécifiée
+      if (hourParam && !fullDayParam) {
+        targetHour = parseInt(hourParam, 10);
+        if (isNaN(targetHour) || targetHour < 0 || targetHour > 23) {
+          return NextResponse.json(
+            { error: "Format d'heure invalide (doit être entre 0 et 23)" },
+            { status: 400 }
+          );
+        }
+      }
     } else {
-      // Calculer pour hier par défaut
-      targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() - 1);
+      // Par défaut, utiliser l'heure précédente
+      const now = new Date();
+      targetDate = new Date(now);
+
+      // Si on est à l'heure 0, il faut revenir au jour précédent à 23h
+      if (now.getHours() === 0) {
+        targetDate.setDate(targetDate.getDate() - 1);
+        targetHour = 23;
+      } else {
+        targetHour = now.getHours() - 1;
+      }
     }
 
-    // Formater la date pour les comparaisons SQL
+    // Formater la date pour les logs et messages
     const dateString = targetDate.toISOString().split("T")[0];
 
-    // Début et fin de la journée ciblée
-    const startDate = new Date(`${dateString}T00:00:00Z`);
-    const endDate = new Date(`${dateString}T23:59:59.999Z`);
+    if (targetHour !== null) {
+      console.log(
+        `Calcul des métriques horaires pour ${dateString}, heure ${targetHour}`
+      );
+    } else {
+      console.log(
+        `Calcul des métriques horaires pour toute la journée du ${dateString}`
+      );
+    }
 
-    console.log(`Calcul des métriques horaires pour ${dateString}`);
+    // Suppression des métriques horaires existantes pour cette date et heure
+    if (targetHour !== null) {
+      const deleteCount = await prisma.hourlyMetric.deleteMany({
+        where: {
+          date: targetDate,
+          hour: targetHour,
+        },
+      });
+      console.log(
+        `${deleteCount.count} métriques existantes supprimées pour ${dateString}, heure ${targetHour}`
+      );
+    } else {
+      const deleteCount = await prisma.hourlyMetric.deleteMany({
+        where: {
+          date: targetDate,
+        },
+      });
+      console.log(
+        `${deleteCount.count} métriques existantes supprimées pour ${dateString}`
+      );
+    }
 
-    // Suppression des métriques horaires existantes pour cette date
-    const deleteCount = await prisma.hourlyMetric.deleteMany({
-      where: {
-        date: startDate,
-      },
-    });
-    console.log(
-      `${deleteCount.count} métriques horaires existantes supprimées`
-    );
+    // Obtenir toutes les lignes avec des données pour cette période
+    let routesWithData;
 
-    // Obtenir toutes les lignes avec des données pour cette journée
-    const routesWithData = await prisma.$queryRaw`
-      SELECT DISTINCT rd."route_id"
-      FROM "realtime_delays" rd
-      WHERE rd."collected_at" BETWEEN ${startDate} AND ${endDate}
-    `;
+    if (targetHour !== null) {
+      // Si on ne traite qu'une heure spécifique
+      const hourStart = new Date(targetDate);
+      hourStart.setHours(targetHour, 0, 0, 0);
+
+      const hourEnd = new Date(targetDate);
+      hourEnd.setHours(targetHour, 59, 59, 999);
+
+      routesWithData = await prisma.$queryRaw`
+        SELECT DISTINCT rd."route_id"
+        FROM "realtime_delays" rd
+        WHERE rd."collected_at" BETWEEN ${hourStart} AND ${hourEnd}
+      `;
+    } else {
+      // Si on traite toute la journée
+      const dayStart = new Date(targetDate);
+      dayStart.setHours(0, 0, 0, 0);
+
+      const dayEnd = new Date(targetDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      routesWithData = await prisma.$queryRaw`
+        SELECT DISTINCT rd."route_id"
+        FROM "realtime_delays" rd
+        WHERE rd."collected_at" BETWEEN ${dayStart} AND ${dayEnd}
+      `;
+    }
 
     if (!Array.isArray(routesWithData) || routesWithData.length === 0) {
       return NextResponse.json(
         {
-          message: "Aucune donnée disponible pour cette journée",
+          message: `Aucune donnée disponible pour ${
+            targetHour !== null ? `l'heure ${targetHour}` : "cette journée"
+          }`,
         },
         { status: 404 }
       );
@@ -89,20 +155,23 @@ export async function GET(request: Request) {
     // Pour chaque ligne, calculer les métriques par heure
     for (const routeObj of routesWithData) {
       const routeId = routeObj.route_id;
-      console.log(`Calcul des métriques horaires pour la ligne ${routeId}`);
+      console.log(`Calcul des métriques pour la ligne ${routeId}`);
 
-      // Pour chaque heure de la journée (0-23)
-      for (let hour = 0; hour < 24; hour++) {
+      // Déterminer les heures à traiter
+      const hoursToProcess =
+        targetHour !== null ? [targetHour] : Array.from(Array(24).keys()); // 0-23 si journée complète
+
+      for (const hour of hoursToProcess) {
         try {
           // Calculer les limites de cette heure
-          const hourStart = new Date(startDate);
+          const hourStart = new Date(targetDate);
           hourStart.setHours(hour, 0, 0, 0);
 
-          const hourEnd = new Date(startDate);
+          const hourEnd = new Date(targetDate);
           hourEnd.setHours(hour, 59, 59, 999);
 
           // Vérifier s'il y a des données pour cette heure
-          const hasData = await prisma.realtimeDelay.count({
+          const observationCount = await prisma.realtimeDelay.count({
             where: {
               routeId,
               collectedAt: {
@@ -113,8 +182,18 @@ export async function GET(request: Request) {
             },
           });
 
-          if (hasData === 0) {
+          if (observationCount === 0) {
             // Aucune donnée pour cette heure, passer à la suivante
+            console.log(
+              `Ligne ${routeId}, heure ${hour}: aucune donnée, ignorée`
+            );
+            continue;
+          }
+
+          if (observationCount < 5) {
+            console.log(
+              `Ligne ${routeId}, heure ${hour}: trop peu d'observations (${observationCount}), ignorée`
+            );
             continue;
           }
 
@@ -156,18 +235,9 @@ export async function GET(request: Request) {
           if (Array.isArray(metrics) && metrics.length > 0) {
             const metric = metrics[0];
 
-            // Vérifier si nous avons au moins quelques observations
-            const observations = Number(metric.observations || 0);
-            if (observations < 5) {
-              console.log(
-                `Ligne ${routeId}, heure ${hour}: trop peu d'observations (${observations}), ignorée`
-              );
-              continue;
-            }
-
             // S'assurer que toutes les valeurs numériques sont converties correctement
             const sanitizedMetric = {
-              observations,
+              observations: Number(metric.observations || 0),
               avgDelay: Number(metric.avg_delay || 0),
               maxDelay: Number(metric.max_delay || 0),
               minDelay: Number(metric.min_delay || 0),
@@ -194,7 +264,7 @@ export async function GET(request: Request) {
             // Créer la métrique horaire
             const result = await prisma.hourlyMetric.create({
               data: {
-                date: startDate,
+                date: targetDate,
                 hour,
                 observations: sanitizedMetric.observations,
                 avgDelay: sanitizedMetric.avgDelay,
@@ -227,6 +297,14 @@ export async function GET(request: Request) {
               },
             });
 
+            console.log(
+              `Métrique créée pour ligne ${routeId}, heure ${hour}: ${
+                sanitizedMetric.observations
+              } obs, ponctualité ${(sanitizedMetric.onTimeRate60 * 100).toFixed(
+                1
+              )}%`
+            );
+
             results.push(result);
             totalProcessed++;
           }
@@ -247,8 +325,12 @@ export async function GET(request: Request) {
     return NextResponse.json({
       status: "success",
       date: dateString,
+      hour: targetHour,
       processed: totalProcessed,
-      message: `Métriques horaires calculées: ${totalProcessed} entrées`,
+      message:
+        targetHour !== null
+          ? `Métriques horaires calculées pour l'heure ${targetHour}: ${totalProcessed} entrées`
+          : `Métriques horaires calculées pour toute la journée: ${totalProcessed} entrées`,
     });
   } catch (error) {
     console.error("Erreur lors du calcul des métriques horaires:", error);
