@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
     let targetDate: Date;
     if (dateParam) {
       targetDate = new Date(dateParam);
+      console.log('date', dateParam)
       if (isNaN(targetDate.getTime())) {
         return NextResponse.json(
           { error: "Format de date invalide" },

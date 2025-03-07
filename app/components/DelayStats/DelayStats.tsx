@@ -56,36 +56,96 @@ export default function DelayStats() {
   const [loading, setLoading] = useState<boolean>(true);
   const [period, setPeriod] = useState<PeriodType>("week");
 
-const [hourlyData, setHourlyData] = useState<any[]>([]);
-const [selectedDate, setSelectedDate] = useState<string>(new Date().toDateString());
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
+  const [hourlyDataLoading, setHourlyDataLoading] = useState<boolean>(true);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
 
-useEffect(() => {
-  // Fonction pour charger les données horaires
+  // Fonction pour récupérer et agréger les données horaires
   const fetchHourlyData = async () => {
+    setHourlyDataLoading(true);
     try {
-      const response = await fetch(`/api/gtfs/metrics/hourly?date=${selectedDate}`);
+      // Utiliser l'API existante sans spécifier de routeId pour obtenir toutes les lignes
+      const response = await fetch(
+        `/api/gtfs/metrics/hourly?date=${selectedDate}`
+      );
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+
       const data = await response.json();
-      
-      // Transformer les données pour le graphique
-      const transformedData = Array.from(Array(24).keys())
-        .map(hour => {
-          const hourData = data.hourlyData?.find((d: any) => d.hour === hour);
-          return {
-            hour: `${hour}h`,
-            avgDelay: hourData?.avgDelay || 0,
-            onTimeRate: hourData ? (hourData.onTimeRate * 100) : 0
-          };
+
+      // Initialiser un tableau pour les 24 heures
+      const aggregatedData = Array(24)
+        .fill(0)
+        .map((_, i) => ({
+          hour: `${i}h`,
+          avgDelay: 0,
+          onTimeRate: 0,
+          observations: 0,
+          routeCount: 0,
+        }));
+
+      // Traiter chaque ligne
+      if (data.routes && Array.isArray(data.routes)) {
+        data.routes.forEach((route: { hourlyData?: any[] }) => {
+          if (route.hourlyData && Array.isArray(route.hourlyData)) {
+            route.hourlyData.forEach(
+              (hourItem: {
+                hour: number;
+                observations: number;
+                avgDelay: number;
+                onTimeRate: number;
+              }) => {
+                const hour = hourItem.hour;
+                const hourEntry = aggregatedData[hour];
+
+                // Pondérer les valeurs par le nombre d'observations
+                if (hourItem.observations > 0) {
+                  const totalObs =
+                    hourEntry.observations + hourItem.observations;
+
+                  // Calculer la moyenne pondérée du retard
+                  hourEntry.avgDelay =
+                    (hourEntry.avgDelay * hourEntry.observations +
+                      hourItem.avgDelay * hourItem.observations) /
+                    totalObs;
+
+                  // Calculer la moyenne pondérée du taux de ponctualité
+                  hourEntry.onTimeRate =
+                    (hourEntry.onTimeRate * hourEntry.observations +
+                      hourItem.onTimeRate * 100 * hourItem.observations) /
+                    totalObs;
+
+                  hourEntry.observations += hourItem.observations;
+                  hourEntry.routeCount++;
+                }
+              }
+            );
+          }
         });
-        
-      setHourlyData(transformedData);
+      }
+
+      // Ne garder que les heures avec des données
+      const filteredData = aggregatedData.filter(
+        (item) => item.observations > 0
+      );
+      setHourlyData(filteredData);
     } catch (error) {
-      console.error("Erreur lors du chargement des données horaires:", error);
+      console.error(
+        "Erreur lors de la récupération des données horaires:",
+        error
+      );
+    } finally {
+      setHourlyDataLoading(false);
     }
   };
-  
-  fetchHourlyData();
-}, [selectedDate]);
 
+  // Charger les données au chargement et quand la date change
+  useEffect(() => {
+    fetchHourlyData();
+  }, [selectedDate]);
 
   useEffect(() => {
     const fetchTransportLines = async () => {
@@ -176,6 +236,24 @@ useEffect(() => {
 
   const delayTrend = getTrend();
   const onTimeTrend = getTrend();
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || payload.length === 0) return null;
+
+    return (
+      <div className="bg-white p-2 shadow border rounded">
+        <p className="text-sm font-medium">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }} className="text-sm">
+            {entry.dataKey === "avgDelay" &&
+              `Retard moyen : ${Math.round(entry.value)} sec`}
+            {entry.dataKey === "onTimeRate" &&
+              `Taux à l'heure : ${entry.value.toFixed(1)}%`}
+          </p>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -395,29 +473,81 @@ useEffect(() => {
           </div>
 
           {/* Analyse par heure de la journée */}
-          <div className="border-b border-gray-200 p-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">
-                Répartition des retards par heure
-              </h3>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-1 border rounded"
-              />
+          <div className="bg-white rounded-lg shadow border border-gray-200">
+            <div className="border-b border-gray-200 p-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">
+                  Répartition des retards par heure
+                </h3>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="px-3 py-1 border rounded"
+                />
+              </div>
             </div>
-          </div>
-          <div className="p-4">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hourlyData}>
-                  {/* reste du code inchangé */}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-2 text-sm text-gray-500 text-center">
-              Données pour le {formatReadableDate(selectedDate)}
+            <div className="p-4">
+              {hourlyDataLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : hourlyData.length === 0 ? (
+                <div className="flex flex-col justify-center items-center h-64 text-gray-500">
+                  <p>Aucune donnée disponible pour cette date</p>
+                  <button
+                    onClick={fetchHourlyData}
+                    className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm"
+                  >
+                    Réessayer
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={hourlyData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="hour" />
+                        <YAxis
+                          yAxisId="left"
+                          orientation="left"
+                          stroke="#8884d8"
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          stroke="#82ca9d"
+                          tickFormatter={(value) => `${value.toFixed(0)}%`}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                        <Bar
+                          yAxisId="left"
+                          dataKey="avgDelay"
+                          name="Retard moyen (sec)"
+                          fill="#8884d8"
+                        />
+                        <Bar
+                          yAxisId="right"
+                          dataKey="onTimeRate"
+                          name="Taux à l'heure (%)"
+                          fill="#82ca9d"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="mt-4 text-sm text-gray-600 text-center">
+                    Données du{" "}
+                    {new Date(selectedDate).toLocaleDateString("fr-FR", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </>
