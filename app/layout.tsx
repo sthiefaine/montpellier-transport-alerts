@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "./components/Header";
+import Header from "../components/Header/Header";
 import { SWRConfig } from "swr";
+import Footer from "../components/Footer/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,28 +36,7 @@ export default function RootLayout({
           <main className="flex-grow py-8">
             {children}
           </main>
-          <footer className="bg-white py-6 mt-12">
-            <div className="container">
-              <div className="flex flex-col md:flex-row justify-between items-center">
-                <div className="mb-4 md:mb-0">
-                  <p className="text-gray-600 text-sm">
-                    Données fournies par{' '}
-                    <a
-                      href="https://data.montpellier3m.fr/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      Montpellier Méditerranée Métropole
-                    </a>
-                  </p>
-                </div>
-                <div className="text-gray-600 text-sm">
-                  <p>© {new Date().getFullYear()} Alertes TAM</p>
-                </div>
-              </div>
-            </div>
-          </footer>
+          <Footer />
         </div>
       </body>
     </html>

@@ -7,7 +7,7 @@
 
 .main {
   flex: 1;
-  padding: 2rem;
+  padding: 5px;
 }
 
 .statsSection {
@@ -16,6 +16,5 @@
 
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.5rem;
 }

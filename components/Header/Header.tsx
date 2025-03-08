@@ -44,10 +44,6 @@ const Header = () => {
       </nav>
 
       <div className={styles.userMenu}>
-        <button className={styles.userButton}>
-          <User size={20} />
-          <span>Admin</span>
-        </button>
       </div>
     </div>
   </header>

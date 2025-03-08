@@ -6,6 +6,7 @@
   display: flex;
   align-items: center;
   transition: transform 0.3s, box-shadow 0.3s;
+  text-decoration: none; /* Pour les liens */
 }
 
 .card:hover {
@@ -56,4 +57,30 @@
   font-size: 1.5rem;
   font-weight: bold;
   color: #212529;
+}
+
+/* Style spécifique pour les cartes cliquables */
+.clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.clickable::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  transition: background-color 0.2s;
+  border-radius: 8px;
+}
+
+.clickable:hover::after {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.clickable:active {
+  transform: translateY(-2px);
 }

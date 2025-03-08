@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import path from "path";
 import fs from "fs";
 import { determineCauseByKeywords, determineEffectByKeywords } from "@/helpers/incident";
+import { revalidatePath } from "next/cache";
 
 const ALERT_URL =
   process.env.ALERT_URL ||
@@ -104,6 +105,8 @@ async function saveAlerts(feedMessage: any): Promise<void> {
     console.log(
       `${feedMessage.entity.length} alertes traitées (dont ${complementAlerts.length} compléments)`
     );
+
+    revalidatePath('/');
   } catch (error) {
     console.error("Erreur lors de la sauvegarde des alertes:", error);
     throw error;
