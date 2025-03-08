@@ -1,5 +1,4 @@
 import React from "react";
-import { Heart } from "lucide-react";
 import styles from "./Footer.module.css";
 
 const Footer = () => {

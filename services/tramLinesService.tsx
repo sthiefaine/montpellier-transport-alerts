@@ -20,7 +20,6 @@ export interface TramLineFeature {
   };
 }
 
-
 export interface TramLinesCollection {
   type: string;
   name: string;

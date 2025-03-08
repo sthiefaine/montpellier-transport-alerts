@@ -4,11 +4,14 @@ import styles from "./page.module.css";
 import Card from "@/components/Cards/Card";
 import { AlertTriangle, Clock } from "lucide-react";
 import TransportLinesIndicator from "../components/TransportLinesIndicator/TransportLinesIndicator";
+import IncidentCalendar from "@/components/IncidentCalendar/IncidentCalendar";
 
 async function getAlertStats() {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/alerts/stats/summary`,
+      `${
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      }/api/alerts/stats/summary`,
       {
         next: { revalidate: 3600 },
       }
@@ -50,9 +53,6 @@ export default async function Home() {
           </div>
 
           <div className={styles.cardGrid}>
-
-            <TransportLinesIndicator />
-
             <Card
               title="Alertes actives"
               value={stats.activeCount || 0}
@@ -60,6 +60,9 @@ export default async function Home() {
               color="red"
               href="/alertes" // Ajoute un lien vers la page des alertes
             />
+            <TransportLinesIndicator />
+
+            <IncidentCalendar />
 
             <Card
               title="Type le plus courant"

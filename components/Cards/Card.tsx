@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react";
+import React, { cloneElement, ReactElement } from "react";
 import Link from "next/link";
 import styles from "./Card.module.css";
 
@@ -7,15 +7,16 @@ type CardProps = {
   value: number | string;
   icon: ReactElement;
   color: string;
-  href?: string; // Nouvelle prop pour ajouter un lien
-  onClick?: () => void; // Handler optionnel pour gérer les clics
+  href?: string;
+  onClick?: () => void;
 };
 
 const Card = ({ title, value, icon, color, href, onClick }: CardProps) => {
-  // Contenu de la carte
   const cardContent = (
     <>
-      <div className={styles.icon}>{icon}</div>
+      <div className={styles.icon}>
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 20 })}
+      </div>
       <div className={styles.content}>
         <h3 className={styles.title}>{title}</h3>
         <div className={styles.value}>{value}</div>
@@ -23,7 +24,6 @@ const Card = ({ title, value, icon, color, href, onClick }: CardProps) => {
     </>
   );
 
-  // Si un href est fourni, rendre la carte comme un lien
   if (href) {
     return (
       <Link
@@ -35,7 +35,6 @@ const Card = ({ title, value, icon, color, href, onClick }: CardProps) => {
     );
   }
 
-  // Si un onClick est fourni, rendre la carte comme un bouton
   if (onClick) {
     return (
       <button
@@ -45,15 +44,15 @@ const Card = ({ title, value, icon, color, href, onClick }: CardProps) => {
           width: "100%",
           textAlign: "left",
           border: "none",
-          cursor: "pointer",
+          background: "none",
+          padding: 0,
         }}
       >
-        {cardContent}
+        <div className={`${styles.card} ${styles[color]}`}>{cardContent}</div>
       </button>
     );
   }
 
-  // Sinon, rendre la carte comme un div standard
   return <div className={`${styles.card} ${styles[color]}`}>{cardContent}</div>;
 };
 

@@ -1,18 +1,45 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
 
 export async function GET(request: NextRequest) {
   try {
-    
     const searchParams = request.nextUrl.searchParams;
     const months = parseInt(searchParams.get("months") || "6");
-
     
+    // Si une action de revalidation est demandée avec un secret valide
+    const revalidate = searchParams.get("revalidate");
+    const secret = searchParams.get("secret");
+    
+    if (revalidate === "true" && secret === process.env.REVALIDATION_SECRET) {
+      revalidateTag("alerts-calendar");
+      return new Response(
+        JSON.stringify({ revalidated: true, message: "Revalidation réussie" }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    // Calcul des dates pour la plage de récupération
     const endDate = new Date();
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - months);
+    endDate.setHours(23, 59, 59, 999);
 
-    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - months * 30); // Approximation
+    startDate.setHours(0, 0, 0, 0);
+
+    const dateString = startDate.toISOString().split("T")[0];
+    const endDateString = endDate.toISOString().split("T")[0];
+
+    console.log(
+      `Récupération des données calendrier du ${dateString} au ${endDateString}`
+    );
+
+    // Récupération des alertes pour la période demandée
     const alerts = await prisma.alert.findMany({
       where: {
         timeStart: {
@@ -32,13 +59,14 @@ export async function GET(request: NextRequest) {
       `Récupéré ${alerts.length} alertes pour le calendrier d'incidents`
     );
 
-    
+    // Construction des données pour le calendrier
     const calendarData: Record<string, number> = {};
 
     alerts.forEach((alert) => {
-      
+      // Récupérer la date (sans l'heure)
       const dateKey = alert.timeStart.toISOString().split("T")[0];
       
+      // Incrémenter le compteur pour cette date
       if (calendarData[dateKey]) {
         calendarData[dateKey]++;
       } else {
@@ -46,14 +74,16 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    
-    return new Response(JSON.stringify(calendarData), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=300", 
-      },
-    });
+    return new Response(
+      JSON.stringify(calendarData),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, s-maxage=300", // 5 minutes pour le cache
+        }
+      }
+    );
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des données du calendrier:",
