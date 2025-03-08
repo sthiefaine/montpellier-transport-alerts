@@ -1,4 +1,3 @@
-// app/api/gtfs/metrics/compute-daily/route.ts
 export const maxDuration = 300
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
@@ -42,7 +41,7 @@ export async function GET(request: Request) {
     } else {
       // Calculer pour hier par défaut
       targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() - 1);
+      targetDate.setDate(targetDate.getDate()-1);
     }
 
     // Formater la date pour les comparaisons SQL

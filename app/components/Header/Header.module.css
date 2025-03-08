@@ -1,0 +1,142 @@
+.header {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  flex: 1;
+}
+
+.logoContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dark);
+}
+
+.logoIcon {
+  color: var(--primary);
+}
+
+.logo h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.logo span {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.nav {
+  margin-right: 2rem;
+}
+
+.nav ul {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gray);
+  font-weight: 500;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+.navLink:hover {
+  color: var(--primary);
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.userMenu {
+  display: flex;
+  align-items: center;
+}
+
+.userButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.userButton:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+.mobileMenuButton {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--dark);
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .nav {
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    transition: 0.3s ease;
+    pointer-events: none;
+    opacity: 0;
+    margin-right: 0;
+  }
+
+  .navOpen {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .nav ul {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .navLink {
+    padding: 0.75rem;
+  }
+
+  .mobileMenuButton {
+    display: block;
+    order: 3;
+  }
+
+  .userMenu {
+    order: 2;
+  }
+}

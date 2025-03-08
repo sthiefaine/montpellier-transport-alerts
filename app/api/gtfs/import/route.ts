@@ -1,4 +1,4 @@
-export const maxDuration = 300;
+export const maxDuration = 800;
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";

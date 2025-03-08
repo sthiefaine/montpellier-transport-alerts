@@ -19,15 +19,13 @@ function validateAuth(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    if (!validateAuth(request)) {
+    if (validateAuth(request)) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
     const url = new URL(request.url);
     const dateParam = url.searchParams.get("date");
     const baseUrl = url.origin;
-
-    // Déterminer la date (hier par défaut)
     let targetDate: Date;
     if (dateParam) {
       targetDate = new Date(dateParam);
@@ -56,9 +54,8 @@ export async function GET(request: Request) {
     // Créer un ensemble des heures existantes
     const existingHoursSet = new Set(existingHours.map((item) => item.hour));
 
-    // Déterminer les heures manquantes (de 6h à 23h pour couvrir les heures de service habituelles)
     const missingHours = [];
-    for (let hour = 6; hour <= 23; hour++) {
+    for (let hour = 5; hour <= 23; hour++) {
       if (!existingHoursSet.has(hour)) {
         missingHours.push(hour);
       }
