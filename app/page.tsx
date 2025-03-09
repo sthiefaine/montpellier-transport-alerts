@@ -2,7 +2,14 @@
 import React from "react";
 import styles from "./page.module.css";
 import Card from "@/components/Cards/Card";
-import { AlertTriangle, ArrowDown, BarChart3, Calendar, Clock, MapPin } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDown,
+  BarChart3,
+  Calendar,
+  Clock,
+  MapPin,
+} from "lucide-react";
 import TransportLinesIndicator from "../components/TransportLinesIndicator/TransportLinesIndicator";
 import IncidentCalendar from "@/components/IncidentCalendar/IncidentCalendar";
 import RealTimeDelayCard from "@/components/Cards/RealTimeDelay/RealTimeDelay";
@@ -275,50 +282,38 @@ export default async function Home() {
           </div>
 
           <div className={styles.cardGrid}>
-          <MiniNavCard
-        title="Alertes"
-        icon={<AlertTriangle size={24} />}
-        href="/alertes"
-        color="#ef4444" // Rouge
-        count={stats.activeCount}
-      />
-      
-      <MiniNavCard
-        title="Départs"
-        icon={<ArrowDown size={24} />}
-        href="/departs"
-        color="#3b82f6" // Bleu
-      />
-      
-      <MiniNavCard
-        title="Ponctualité"
-        icon={<Clock size={24} />}
-        href="/ponctualite"
-        color="#f59e0b" // Orange
-        count={`${delayStats.punctuality_rate}%`}
-      />
-      
-      <MiniNavCard
-        title="Arrêts"
-        icon={<MapPin size={24} />}
-        href="/arrets"
-        color="#10b981" // Vert
-      />
-      
-      <MiniNavCard
-        title="Statistiques"
-        icon={<BarChart3 size={24} />}
-        href="/stats"
-        color="#8b5cf6" // Violet
-      />
-      
-      <MiniNavCard
-        title="Historique"
-        icon={<Calendar size={24} />}
-        href="/historique" 
-        color="#ec4899" // Rose
-      />
-  
+            <MiniNavCard
+              title="Alertes"
+              icon={<AlertTriangle size={24} />}
+              href="/alertes"
+              color="#ef4444" // Rouge
+              count={stats.activeCount}
+            />
+            <MiniNavCard
+              title="Départs"
+              icon={<ArrowDown size={24} />}
+              href="/departs"
+              color="#3b82f6" // Bleu
+            />
+            <MiniNavCard
+              title="Ponctualité"
+              icon={<Clock size={24} />}
+              href="/ponctualite"
+              color="#f59e0b" // Orange
+              count={`${delayStats.punctuality_rate}%`}
+            />
+            <MiniNavCard
+              title="Statistiques"
+              icon={<BarChart3 size={24} />}
+              href="/stats"
+              color="#8b5cf6" // Violet
+            />
+            <MiniNavCard
+              title="Historique"
+              icon={<Calendar size={24} />}
+              href="/historique"
+              color="#ec4899" // Rose
+            />
             <TransportLinesIndicator />
             {/* Card détaillée pour les retards en temps réel */}
             <RealTimeDelayCard delayStats={delayStats} />

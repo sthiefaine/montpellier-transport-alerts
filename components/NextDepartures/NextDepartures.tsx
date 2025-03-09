@@ -77,7 +77,6 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     try {
       setLoading(true);
       
-      // Construire l'URL avec les paramètres
       let url = "/api/gtfs/departures/next?limit=" + limit;
       if (stopId) url += "&stopId=" + stopId;
       if (routeId) url += "&routeId=" + routeId;
@@ -89,7 +88,18 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
       }
       
       const data = await response.json();
-      setDepartures(data);
+      
+      // Ajuster les heures en fonction du fuseau horaire local
+      const adjustedData = data.map((departure: NextDepartureData) => {
+        return {
+          ...departure,
+          // Reformater les heures en tenant compte du fuseau horaire local
+          formattedScheduled: departure.scheduledTime ? new Date(departure.scheduledTime).toLocaleTimeString('fr-FR') : null,
+          formattedEstimated: departure.estimatedTime ? new Date(departure.estimatedTime).toLocaleTimeString('fr-FR') : null
+        };
+      });
+      
+      setDepartures(adjustedData);
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
@@ -147,10 +157,34 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     return styles.early;
   };
 
-  // Format heures - Minutes uniquement
-  const formatTimeShort = (timeStr: string | null) => {
-    if (!timeStr) return "";
-    return timeStr;
+  // Formater une heure en tenant compte du fuseau horaire local
+  const formatLocalTime = (date: Date): string => {
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  };
+
+  // Dé-duplication des départs avant le rendu
+  const uniqueDepartures = React.useMemo(() => {
+    // Utiliser un Map pour éliminer les doublons
+    const uniqueMap = new Map();
+    
+    departures.forEach((departure, index) => {
+      // Créer une clé basée sur les données pertinentes
+      const key = `${departure.tripId}-${departure.stop.id}-${departure.line.id}-${departure.formattedEstimated}`;
+      
+      // Ne garder que la première occurrence (ou mettre à jour selon une logique spécifique)
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, { ...departure, _index: index });
+      }
+    });
+    
+    // Convertir le Map en tableau
+    return Array.from(uniqueMap.values());
+  }, [departures]);
+  
+  // Génère une clé unique garantie pour chaque départ
+  const generateUniqueKey = (departure: any, index: number) => {
+    // Utiliser l'index original et un index secondaire pour garantir l'unicité absolue
+    return `idx-${departure._index}-${index}`;
   };
 
   // Rendu du tableau pour desktop
@@ -168,8 +202,8 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
           </tr>
         </thead>
         <tbody>
-          {departures.map((departure) => (
-            <tr key={`${departure.tripId}-${departure.stop.id}`}>
+          {uniqueDepartures.map((departure, index) => (
+            <tr key={generateUniqueKey(departure, index)}>
               <td className={styles.lineColumn}>
                 <div 
                   className={styles.lineNumber}
@@ -202,9 +236,9 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   // Rendu des cartes pour mobile
   const renderCards = () => (
     <div className={styles.cardsContainer}>
-      {departures.map((departure) => (
+      {uniqueDepartures.map((departure, index) => (
         <div 
-          key={`${departure.tripId}-${departure.stop.id}`} 
+          key={generateUniqueKey(departure, index)} 
           className={styles.departureCard}
         >
           <div className={styles.cardHeader}>
