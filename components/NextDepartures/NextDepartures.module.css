@@ -1,0 +1,323 @@
+.container {
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border-left: 4px solid #3b82f6;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #6b7280;
+  margin-left: 0.5rem;
+}
+
+.refreshButton, .toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.toggleButton {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #f3f4f6;
+}
+
+.refreshButton:hover, .toggleButton:hover {
+  color: #3b82f6;
+  background-color: #f3f4f6;
+}
+
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  color: #ef4444;
+  text-align: center;
+  padding: 1rem;
+  background-color: #fef2f2;
+  border-radius: 0.5rem;
+  border: 1px solid #fee2e2;
+  font-size: 0.875rem;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 0;
+  gap: 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.loadingSpinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s ease-in-out infinite;
+}
+
+.noData {
+  text-align: center;
+  padding: 2rem 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Styles pour la vue tableau */
+.tableContainer {
+  overflow-x: auto;
+  margin: -0.5rem;
+  padding: 0.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.table th {
+  text-align: left;
+  color: #6b7280;
+  font-weight: 500;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table td {
+  padding: 0.625rem 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.lineColumn {
+  width: 60px;
+}
+
+.lineNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.stopColumn {
+  max-width: 150px;
+}
+
+.directionColumn {
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delayColumn {
+  min-width: 120px;
+}
+
+.timeColumn {
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Styles pour la vue cartes (mobile) */
+.cardsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.departureCard {
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.departureCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cardLineNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.cardTimeInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.scheduledTime {
+  color: #6b7280;
+  text-decoration: line-through;
+}
+
+.timeArrow {
+  color: #9ca3af;
+}
+
+.estimatedTime {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.cardDetails {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cardStop, .cardDirection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.cardIcon {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.cardDelay {
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Classes de couleur pour les retards */
+.onTime {
+  color: #10b981; /* vert */
+}
+
+.late {
+  color: #ef4444; /* rouge */
+}
+
+.early {
+  color: #3b82f6; /* bleu */
+}
+
+.lastUpdated {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.7rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Style pour mobile */
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .table {
+    font-size: 0.75rem;
+  }
+  
+  .lineNumber, .cardLineNumber {
+    width: 2rem;
+    height: 1.25rem;
+    font-size: 0.7rem;
+  }
+  
+  .stopColumn {
+    max-width: 100px;
+  }
+  
+  .directionColumn {
+    max-width: 120px;
+  }
+  
+  .delayColumn {
+    min-width: 90px;
+  }
+}

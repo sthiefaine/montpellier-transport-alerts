@@ -22,11 +22,13 @@ function validateAuth(request: Request) {
 // Fonction pour déterminer le décalage horaire de Paris (prend en compte heure d'été/hiver)
 function getParisOffset() {
   const now = new Date();
-  
+
   // Crée une date en utilisant le fuseau horaire de Paris et extrait sa différence avec UTC
-  const parisTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+  const parisTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "Europe/Paris" })
+  );
   const utcTime = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
-  
+
   // Calculer la différence en heures
   return (parisTime.getTime() - utcTime.getTime()) / (1000 * 60 * 60);
 }
@@ -71,13 +73,13 @@ export async function GET(request: Request) {
       // Par défaut, utiliser l'heure précédente ajustée au fuseau horaire de Paris
       const now = new Date();
       targetDate = new Date(now);
-      
+
       // Obtenir le décalage horaire de Paris (1 ou 2 selon la saison)
       const parisOffset = getParisOffset();
-      
+
       // Calculer l'heure à Paris
       const parisHour = (now.getUTCHours() + parisOffset) % 24;
-      
+
       // Si on est à l'heure 0 à Paris, il faut revenir au jour précédent à 23h
       if (parisHour === 0) {
         targetDate.setDate(targetDate.getDate() - 1);
