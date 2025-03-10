@@ -97,8 +97,7 @@ async function processImport() {
     // Importer les voyages (trips)
     await importTrips(tempDir);
 
-    // Si vous voulez importer les horaires également
-    // await importStopTimes(tempDir);
+   // await importStopTimes(tempDir);
 
     return NextResponse.json({
       status: "success",

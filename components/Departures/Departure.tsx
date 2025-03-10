@@ -71,66 +71,6 @@ export default function DeparturesContainer() {
           } else {
             // If API fails, fall back to mock data
             console.error("Failed to fetch routes from API, using mock data instead");
-            
-            // Mock data for routes with directions
-            const routesWithDirectionsData: Route[] = [
-              { 
-                id: 'T1', 
-                number: 'T1', 
-                name: 'Mosson - Odysseum', 
-                color: '#005CA9',
-                type: 1,
-                directions: [
-                  { id: '7-1', name: 'Direction Odysseum', directionId: 0 },
-                  { id: '8-1', name: 'Direction Mosson', directionId: 1 }
-                ]
-              },
-              { 
-                id: 'T2', 
-                number: 'T2', 
-                name: 'St-Jean de Védas - Jacou', 
-                color: '#EF7D00',
-                type: 1,
-                directions: [
-                  { id: '7-12', name: 'Direction Jacou', directionId: 0 },
-                  { id: '8-12', name: 'Direction St-Jean de Védas', directionId: 1 }
-                ]
-              },
-              { 
-                id: 'T3', 
-                number: 'T3', 
-                name: 'Juvignac - Pérols', 
-                color: '#C8D400',
-                type: 1,
-                directions: [
-                  { id: '7-22', name: 'Direction Pérols', directionId: 0 },
-                  { id: '8-22', name: 'Direction Juvignac', directionId: 1 }
-                ]
-              },
-              { 
-                id: 'T4', 
-                number: 'T4', 
-                name: 'A/B Garcia Lorca', 
-                color: '#4B2A0E',
-                type: 1,
-                directions: [
-                  { id: '7-33', name: 'Sens A', directionId: 0 },
-                  { id: '8-33', name: 'Sens B', directionId: 1 }
-                ]
-              },
-              { 
-                id: 'L6', 
-                number: '6', 
-                name: 'Euromédecine - Albert 1er', 
-                color: '#E94190',
-                type: 2,
-                directions: [
-                  { id: '7-35', name: 'Direction Albert 1er', directionId: 0 },
-                  { id: '8-35', name: 'Direction Euromédecine', directionId: 1 }
-                ]
-              }
-            ];
-            setRoutes(routesWithDirectionsData);
           }
         } catch (error) {
           console.error("Error fetching routes:", error);

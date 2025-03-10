@@ -10,12 +10,32 @@
       "schedule": "*/10 0-4 * * *"
     },
     {
-      "path": "/api/gtfs/import",
+      "path": "/api/gtfs/download",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/gtfs/import-stops",
+      "schedule": "1 3 * * *"
+    },
+    {
+      "path": "/api/gtfs/import-routes",
       "schedule": "2 3 * * *"
     },
     {
-      "path": "/api/gtfs/extract-service-info",
+      "path": "/api/gtfs/import-trips",
+      "schedule": "3 3 * * *"
+    },
+    {
+      "path": "/api/gtfs/import-stop-times",
       "schedule": "5 3 * * *"
+    },
+    {
+      "path": "/api/gtfs/cleanup?keepRecentHours=48&keepLastN=2",
+      "schedule": "10 3 * * *"
+    },
+    {
+      "path": "/api/gtfs/extract-service-info",
+      "schedule": "12 3 * * *"
     },
     {
       "path": "/api/gtfs/collect-realtime",
@@ -31,7 +51,7 @@
     },
     {
       "path": "/api/gtfs/metrics/compute-daily",
-      "schedule": "10 4 * * *"
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/gtfs/metrics/compute-hourly",
@@ -39,15 +59,15 @@
     },
     {
       "path": "/api/gtfs/metrics/compute-detailed",
-      "schedule": "25 4 * * *"
+      "schedule": "15 4 * * *"
     },
     {
       "path": "/api/gtfs/weather/analyze",
-      "schedule": "35 4 * * *"
+      "schedule": "25 4 * * *"
     },
     {
       "path": "/api/gtfs/cleanup-realtime",
-      "schedule": "45 4 * * *"
+      "schedule": "35 4 * * *"
     },
     {
       "path": "/api/gtfs/metrics/with-threshold?threshold=60",

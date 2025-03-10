@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const stopId = url.searchParams.get("stopId");
     const routeId = url.searchParams.get("routeId");
+    const directionId = url.searchParams.get("directionId");
     const limit = parseInt(url.searchParams.get("limit") || "10");
     
     // Date actuelle
@@ -46,9 +47,16 @@ export async function GET(request: Request) {
       whereClause.stopId = stopId;
     }
     
-    // Ajouter le filtre par ligne si spécifié
+    // Ajouter le filtre par route si spécifié
     if (routeId) {
       whereClause.routeId = routeId;
+    }
+    
+    // Ajouter le filtre par direction si spécifié
+    if (directionId !== null && directionId !== undefined) {
+      whereClause.trip = {
+        directionId: parseInt(directionId)
+      };
     }
     
     // Récupérer les prochains départs avec les détails correspondants

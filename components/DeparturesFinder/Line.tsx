@@ -3,12 +3,20 @@
 import { Bus } from "lucide-react";
 import styles from "./DeparturesFinder.module.css";
 
+// Mise à jour de l'interface Route pour inclure les nouveaux champs
 interface Route {
   id: string;
   shortName: string;
   longName: string;
   color?: string | null;
   type: number;
+  routeIds?: string[]; // Ajout: tableau des IDs de routes associées
+  directionIds?: number[]; // Ajout: tableau des IDs de direction disponibles
+  directions?: {
+    id: string;
+    name: string;
+    directionId: number;
+  }[]; // Ajout: informations sur les directions
 }
 
 interface LineSelectorProps {
@@ -22,7 +30,7 @@ export default function LineSelector({
   selectedRoute,
   onSelectRoute,
 }: LineSelectorProps) {
-  // Grouper les routes par type
+  // Regrouper les routes par type
   const tramRoutes = routes.filter(
     (route) => route.type === 0 || route.type === 1
   ); // Types tram
@@ -32,6 +40,8 @@ export default function LineSelector({
   const otherRoutes = routes.filter(
     (route) => !tramRoutes.includes(route) && !busRoutes.includes(route)
   );
+
+  console.log('tram', tramRoutes)
 
   // Fonction pour déterminer si une couleur est claire ou foncée
   const isLightColor = (color?: string | null) => {
@@ -78,9 +88,10 @@ export default function LineSelector({
                   : "#fff"
                 : undefined,
             }}
+            title={route.routeIds ? (route.routeIds.length > 1 ? `Ligne incluant ${route.routeIds.length} directions` : undefined) : undefined}
           >
             <span className={styles.routeNumber}>{route.shortName}</span>
-            <span className={styles.routeName}>{route.longName}</span>
+
           </button>
         ))}
       </div>

@@ -24,6 +24,12 @@ interface Route {
   longName: string;
   color?: string | null;
   type: number;
+  routeId?: string; // ID unique de la route
+  directions?: {
+    id: string;
+    name: string;
+    directionId: number;
+  }[]; // Informations sur les directions
 }
 
 interface Stop {
@@ -58,9 +64,7 @@ export default function DeparturesFinder({
   const [filteredStops, setFilteredStops] = useState<Stop[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
-  const [selectedDirection, setSelectedDirection] = useState<number | null>(
-    null
-  );
+  const [selectedDirection, setSelectedDirection] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"lines" | "stops">("lines");
@@ -84,7 +88,6 @@ export default function DeparturesFinder({
       setFilteredStops([]);
     }
   }, [searchQuery]);
-
 
   // Fonction pour rechercher des arrêts par nom
   const fetchStopsBySearch = async (query: string) => {
@@ -111,6 +114,7 @@ export default function DeparturesFinder({
 
   // Gérer la sélection d'une ligne
   const handleRouteSelect = (route: Route) => {
+    console.log('Selected route:', route);
     setSelectedRoute(route);
     setSelectedStop(null);
     setActiveTab("stops");
@@ -140,30 +144,31 @@ export default function DeparturesFinder({
     setActiveTab("lines");
   };
 
-  const getDestinations = (routeId: string) => {
+  // Obtenir les directions pour la route sélectionnée
+  const getDestinations = (route: Route) => {
     const destinations: { id: number | null; name: string }[] = [];
 
     // Ajouter l'option "Toutes" en premier
     destinations.push({ id: null, name: "Toutes" });
 
-    if (terminusByRoute[routeId]) {
-      Object.entries(terminusByRoute[routeId]).forEach(([dirId, name]) => {
+    // Utiliser les directions définies dans la route si disponibles
+    if (route.directions && route.directions.length > 0) {
+      route.directions.forEach(direction => {
         destinations.push({
-          id: parseInt(dirId),
-          name,
+          id: direction.directionId,
+          name: direction.name
         });
       });
-    }
-
-    // Par défaut s'il n'y a pas de données
-    if (destinations.length === 1) {
-      // Si on n'a que l'option "Toutes"
+    } 
+    // Sinon, utiliser les options par défaut
+    else {
       destinations.push({ id: 0, name: "Aller" });
       destinations.push({ id: 1, name: "Retour" });
     }
 
     return destinations;
   };
+
   return (
     <div className={styles.container}>
       <div className={styles.selectionPanel}>
@@ -270,7 +275,7 @@ export default function DeparturesFinder({
             <div className={styles.directionSelector}>
               <h3 className={styles.sectionTitle}>Direction</h3>
               <div className={styles.directionButtons}>
-                {getDestinations(selectedRoute.id).map((destination) => (
+                {getDestinations(selectedRoute).map((destination) => (
                   <button
                     key={destination.id !== null ? destination.id : "all"}
                     className={`${styles.directionButton} ${
@@ -343,7 +348,8 @@ export default function DeparturesFinder({
         {selectedStop ? (
           <NextDepartures
             stopId={selectedStop.id}
-            routeId={selectedRoute?.id}
+            routeId={selectedRoute?.routeId}
+            directionId={selectedDirection}
             limit={20}
             refreshInterval={30000}
             showTitle={true}
@@ -351,7 +357,8 @@ export default function DeparturesFinder({
           />
         ) : selectedRoute ? (
           <NextDepartures
-            routeId={selectedRoute.id}
+            routeId={selectedRoute.routeId}
+            directionId={selectedDirection}
             limit={20}
             refreshInterval={30000}
             showTitle={true}
@@ -359,10 +366,10 @@ export default function DeparturesFinder({
           />
         ) : (
           <NextDepartures
-          limit={5}
-          refreshInterval={30000}
-          showTitle={false}
-          displayMode="auto"
+            limit={5}
+            refreshInterval={30000}
+            showTitle={false}
+            displayMode="auto"
           />
         )}
 
