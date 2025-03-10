@@ -321,3 +321,86 @@
     min-width: 90px;
   }
 }
+
+.countdown {
+  font-weight: 600;
+  font-family: monospace;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.urgentCountdown {
+  color: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+.warningCountdown {
+  color: #f59e0b;
+}
+
+.normalCountdown {
+  color: #10b981;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Rendre le temps restant plus visible dans les cartes */
+.cardTimeInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.cardTimeInfo.urgentCountdown {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.cardTimeInfo.warningCountdown {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.cardTimeInfo.normalCountdown {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+/* Styles pour le titre de colonne "Temps restant" */
+.timeColumn {
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Modifier le style des cellules du tableau pour le temps restant */
+.timeCell {
+  font-family: monospace;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem;
+}
+
+/* États des comptes à rebours */
+.timeCell.urgentCountdown {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.timeCell.warningCountdown {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.timeCell.normalCountdown {
+  background-color: rgba(16, 185, 129, 0.1);
+}

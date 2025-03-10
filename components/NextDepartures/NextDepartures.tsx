@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Clock, ArrowRight, Bus, MapPin } from "lucide-react";
 import styles from "./NextDepartures.module.css";
 
@@ -48,6 +48,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   displayMode = "auto",
 }) => {
   const [departures, setDepartures] = useState<NextDepartureData[]>([]);
+  const [countdowns, setCountdowns] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -121,6 +122,66 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     }
   };
 
+  // Fonction pour calculer et formater le temps restant
+  const calculateCountdown = useCallback((estimatedTime: string | null): string => {
+    if (!estimatedTime) return "--:--";
+    
+    const now = new Date();
+    const estimated = new Date(estimatedTime);
+    const diffMs = estimated.getTime() - now.getTime();
+    
+    // Si le départ est passé, afficher +xx:xx pour indiquer le temps écoulé depuis le départ
+    if (diffMs < 0) {
+      const elapsedMs = Math.abs(diffMs);
+      const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
+      const minutes = Math.floor((elapsedMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((elapsedMs % (1000 * 60)) / 1000);
+      
+      // Format +hh:mm:ss ou +mm:ss
+      if (hours > 0) {
+        return `+${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      } else {
+        return `+${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+    
+    // Calculer heures, minutes, secondes pour le temps restant
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+    
+    // Format (hh:)mm:ss - heures seulement si > 0
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+  }, []);
+
+  // Mettre à jour tous les comptes à rebours chaque seconde
+  useEffect(() => {
+    // Fonction pour mettre à jour tous les comptes à rebours
+    const updateAllCountdowns = () => {
+      const newCountdowns: Record<string, string> = {};
+      
+      departures.forEach((departure) => {
+        const key = `${departure.tripId}-${departure.stop.id}-${departure.line.id}`;
+        newCountdowns[key] = calculateCountdown(departure.estimatedTime);
+      });
+      
+      setCountdowns(newCountdowns);
+    };
+    
+    // Mettre à jour immédiatement
+    updateAllCountdowns();
+    
+    // Puis mettre à jour toutes les secondes
+    const intervalId = setInterval(updateAllCountdowns, 1000);
+    
+    // Nettoyer l'intervalle à la fin
+    return () => clearInterval(intervalId);
+  }, [departures, calculateCountdown]);
+
   useEffect(() => {
     // Charger les données immédiatement
     fetchDepartures();
@@ -166,11 +227,9 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     return styles.early;
   };
 
-  // Formater une heure en tenant compte du fuseau horaire local
-  const formatLocalTime = (date: Date): string => {
-    return `${String(date.getHours()).padStart(2, "0")}:${String(
-      date.getMinutes()
-    ).padStart(2, "0")}`;
+  // Générer une clé unique pour chaque départ
+  const getCountdownKey = (departure: NextDepartureData, index: number) => {
+    return `${departure.tripId}-${departure.stop.id}-${departure.line.id}`;
   };
 
   // Dé-duplication des départs avant le rendu
@@ -182,7 +241,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
       // Créer une clé basée sur les données pertinentes
       const key = `${departure.tripId}-${departure.stop.id}-${departure.line.id}-${departure.formattedEstimated}`;
 
-      // Ne garder que la première occurrence (ou mettre à jour selon une logique spécifique)
+      // Ne garder que la première occurrence
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, { ...departure, _index: index });
       }
@@ -208,8 +267,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
             {!stopId && <th>Arrêt</th>}
             <th>Direction</th>
             <th>Retard</th>
-            <th>Heure prévue</th>
-            <th>Heure estimée</th>
+            <th>ETA</th>
           </tr>
         </thead>
         <tbody>
@@ -242,11 +300,8 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
               >
                 {formatDelay(departure.delay)}
               </td>
-              <td className={styles.timeColumn}>
-                {departure.formattedScheduled}
-              </td>
-              <td className={styles.timeColumn}>
-                {departure.formattedEstimated}
+              <td className={`${styles.timeColumn} ${getCountdownClass(countdowns[getCountdownKey(departure, index)])}`}>
+                {countdowns[getCountdownKey(departure, index)] || calculateCountdown(departure.estimatedTime)}
               </td>
             </tr>
           ))}
@@ -254,6 +309,30 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
       </table>
     </div>
   );
+  
+  // Fonction pour déterminer la classe CSS basée sur le compte à rebours
+  function getCountdownClass(countdown: string | undefined): string {
+    if (!countdown) return "";
+    
+    // Si c'est un départ passé (format +xx:xx)
+    if (countdown.startsWith('+')) return styles.late;
+    
+    // Si le format est HH:MM:SS ou MM:SS
+    const parts = countdown.split(':');
+    let minutes = 0;
+    
+    if (parts.length === 3) {
+      // format HH:MM:SS
+      minutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    } else if (parts.length === 2) {
+      // format MM:SS
+      minutes = parseInt(parts[0]);
+    }
+    
+    if (minutes <= 2) return styles.late;
+    if (minutes <= 5) return styles.early;
+    return styles.onTime;
+  }
 
   // Rendu des cartes pour mobile
   const renderCards = () => (
@@ -275,14 +354,8 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
             </div>
 
             <div className={styles.cardTimeInfo}>
-              <div className={styles.scheduledTime}>
-                {departure.formattedScheduled || "--:--"}
-              </div>
-              <div className={styles.timeArrow}>
-                <ArrowRight size={12} />
-              </div>
-              <div className={styles.estimatedTime}>
-                {departure.formattedEstimated || "--:--"}
+              <div className={`${styles.estimatedTime} ${getCountdownClass(countdowns[getCountdownKey(departure, index)])}`}>
+                {countdowns[getCountdownKey(departure, index)] || calculateCountdown(departure.estimatedTime)}
               </div>
             </div>
           </div>
