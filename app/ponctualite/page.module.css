@@ -1,0 +1,316 @@
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: 1.5rem;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.cardHeader {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.cardIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #6366f1;
+}
+
+.cardContent {
+  padding: 1.25rem;
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.statDescription {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.progressContainer {
+  height: 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background-color: #6366f1;
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
+
+.badgeDanger {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.badgeWarning {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #fef3c7;
+  color: #f59e0b;
+}
+
+.badgeSuccess {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #dcfce7;
+  color: #10b981;
+}
+
+.badgeOutline {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: transparent;
+  border: 1px solid #e2e8f0;
+  color: #666;
+}
+
+.delayIndicator {
+  margin-top: 1rem;
+}
+
+.delayDistribution {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.statusDistItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.observationDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.detailItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.table th {
+  font-weight: 600;
+  background-color: #f9fafb;
+  color: #374151;
+}
+
+.table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.routeCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.routeColor {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.routeName {
+  color: #666;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+}
+
+.goodDelay {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.mediumDelay {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.badDelay {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.punctualityWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stopCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stopIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #6366f1;
+}
+
+.stopCode {
+  color: #666;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+}
+
+.weatherCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.weatherIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #60a5fa;
+}
+
+.noData {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 1rem;
+  color: #666;
+  text-align: center;
+}
+
+.skeleton {
+  width: 100%;
+  height: 2.5rem;
+  border-radius: 0.25rem;
+  background: linear-gradient(90deg, #f3f4f6 0%, #e9ecef 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: skeleton 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeletonTable {
+  width: 100%;
+}
+
+.skeletonRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.skeletonCell {
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  background: linear-gradient(90deg, #f3f4f6 0%, #e9ecef 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: skeleton 1.5s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+
+  .routeName {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statValue {
+    font-size: 2rem;
+  }
+}
