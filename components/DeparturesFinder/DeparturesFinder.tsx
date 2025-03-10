@@ -16,20 +16,27 @@ import NextDepartures from "@/components/NextDepartures/NextDepartures";
 import styles from "./DeparturesFinder.module.css";
 import LineSelector from "./Line";
 import StopSelector from "./Stop";
+import DirectionSelector from "./DirectionSelector";
 
-// Types pour nos données
+// Updated interface for Route to handle both property variations
 interface Route {
   id: string;
   shortName: string;
   longName: string;
   color?: string | null;
   type: number;
-  routeId?: string; // ID unique de la route
+  routeId?: string;
+  // Added properties that might be in the API response
+  number?: string;
+  name?: string;
+  alternativeIds?: string[];
+  routeIds?: string[];
   directions?: {
     id: string;
     name: string;
     directionId: number;
-  }[]; // Informations sur les directions
+    allRouteIds?: string[];
+  }[];
 }
 
 interface Stop {
@@ -38,6 +45,10 @@ interface Stop {
   code?: string | null;
   lat?: number;
   lon?: number;
+  position?: number;
+  isTerminus?: boolean;
+  directionId?: number;
+  routeId?: string;
 }
 
 interface TerminusByRoute {
@@ -74,11 +85,52 @@ export default function DeparturesFinder({
   // Quand une route est sélectionnée, récupérer ses arrêts
   useEffect(() => {
     if (selectedRoute) {
-      setStopsForRoute([]);
+      fetchStopsForRoute(selectedRoute);
     } else {
       setStopsForRoute([]);
     }
   }, [selectedRoute]);
+
+  // Fonction pour récupérer les arrêts d'une ligne spécifique
+  const fetchStopsForRoute = async (route: Route) => {
+    try {
+      setIsLoading(true);
+      // Utiliser le shortName pour récupérer tous les arrêts de la ligne
+      const shortName = route.shortName;
+      
+      const response = await fetch(`/api/routes/${shortName}/stops`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Loaded ${data.length} stops for line ${shortName}`);
+      
+      // Trier les arrêts : d'abord par direction, puis par position
+      const sortedStops = data.sort((a: any, b: any) => {
+        // D'abord trier par direction
+        if (a.directionId !== b.directionId) {
+          return (a.directionId || 0) - (b.directionId || 0);
+        }
+        
+        // Ensuite par position
+        if (a.position !== undefined && b.position !== undefined) {
+          return a.position - b.position;
+        }
+        
+        // En dernier recours par nom
+        return a.name.localeCompare(b.name);
+      });
+      
+      setStopsForRoute(sortedStops);
+    } catch (error) {
+      console.error("Erreur lors du chargement des arrêts:", error);
+      setStopsForRoute([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Quand une recherche est effectuée, mettre à jour les arrêts filtrés
   useEffect(() => {
@@ -124,6 +176,13 @@ export default function DeparturesFinder({
   // Gérer la sélection d'un arrêt
   const handleStopSelect = (stop: Stop) => {
     setSelectedStop(stop);
+    
+    // Si la direction est sur "Toutes" (null) et que l'arrêt a une direction spécifique
+    if (selectedDirection === null && stop.directionId !== undefined) {
+      console.log(`Automatically selecting direction ${stop.directionId} based on stop ${stop.name}`);
+      setSelectedDirection(stop.directionId);
+    }
+    
     // Si on a sélectionné via la recherche, réinitialiser la ligne et la direction
     if (!selectedRoute) {
       setSelectedDirection(null);
@@ -144,29 +203,9 @@ export default function DeparturesFinder({
     setActiveTab("lines");
   };
 
-  // Obtenir les directions pour la route sélectionnée
-  const getDestinations = (route: Route) => {
-    const destinations: { id: number | null; name: string }[] = [];
-
-    // Ajouter l'option "Toutes" en premier
-    destinations.push({ id: null, name: "Toutes" });
-
-    // Utiliser les directions définies dans la route si disponibles
-    if (route.directions && route.directions.length > 0) {
-      route.directions.forEach(direction => {
-        destinations.push({
-          id: direction.directionId,
-          name: direction.name
-        });
-      });
-    } 
-    // Sinon, utiliser les options par défaut
-    else {
-      destinations.push({ id: 0, name: "Aller" });
-      destinations.push({ id: 1, name: "Retour" });
-    }
-
-    return destinations;
+  // Safe getter for routeId with fallback to id
+  const getRouteId = (route: Route): string => {
+    return route.routeId || route.id;
   };
 
   return (
@@ -241,7 +280,7 @@ export default function DeparturesFinder({
                 )}
               </div>
 
-              <StopSelector
+          <StopSelector
                 stops={
                   searchQuery
                     ? filteredStops
@@ -252,11 +291,12 @@ export default function DeparturesFinder({
                 selectedStop={selectedStop}
                 onSelectStop={handleStopSelect}
                 isLoading={isLoading}
+                selectedDirection={selectedDirection}
                 emptyMessage={
                   searchQuery && filteredStops.length === 0
                     ? "Aucun arrêt ne correspond à votre recherche"
                     : selectedRoute && stopsForRoute.length === 0
-                    ? "Aucun arrêt disponible pour cette ligne"
+                    ? "Chargement des arrêts pour cette ligne..."
                     : "Sélectionnez un arrêt ou recherchez-en un"
                 }
                 label={
@@ -275,19 +315,11 @@ export default function DeparturesFinder({
             <div className={styles.directionSelector}>
               <h3 className={styles.sectionTitle}>Direction</h3>
               <div className={styles.directionButtons}>
-                {getDestinations(selectedRoute).map((destination) => (
-                  <button
-                    key={destination.id !== null ? destination.id : "all"}
-                    className={`${styles.directionButton} ${
-                      selectedDirection === destination.id
-                        ? styles.activeDirection
-                        : ""
-                    }`}
-                    onClick={() => handleDirectionSelect(destination.id)}
-                  >
-                    {destination.name}
-                  </button>
-                ))}
+                <DirectionSelector
+                  route={selectedRoute}
+                  selectedDirection={selectedDirection}
+                  onSelectDirection={handleDirectionSelect}
+                />
               </div>
             </div>
           )}
@@ -348,7 +380,7 @@ export default function DeparturesFinder({
         {selectedStop ? (
           <NextDepartures
             stopId={selectedStop.id}
-            routeId={selectedRoute?.routeId}
+            routeId={selectedRoute ? getRouteId(selectedRoute) : undefined}
             directionId={selectedDirection}
             limit={20}
             refreshInterval={30000}
@@ -357,7 +389,7 @@ export default function DeparturesFinder({
           />
         ) : selectedRoute ? (
           <NextDepartures
-            routeId={selectedRoute.routeId}
+            routeId={getRouteId(selectedRoute)}
             directionId={selectedDirection}
             limit={20}
             refreshInterval={30000}
