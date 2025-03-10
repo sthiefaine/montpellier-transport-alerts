@@ -10,32 +10,8 @@
       "schedule": "*/10 0-4 * * *"
     },
     {
-      "path": "/api/gtfs/download",
+      "path": "/api/gtfs/import?steps=all",
       "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/import-stops",
-      "schedule": "1 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/import-routes",
-      "schedule": "2 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/import-trips",
-      "schedule": "3 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/import-stop-times",
-      "schedule": "5 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/cleanup?keepRecentHours=48&keepLastN=2",
-      "schedule": "10 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/extract-service-info",
-      "schedule": "12 3 * * *"
     },
     {
       "path": "/api/gtfs/collect-realtime",

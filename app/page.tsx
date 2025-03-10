@@ -308,27 +308,9 @@ export default async function Home() {
               href="/stats"
               color="#8b5cf6" // Violet
             />
-            <MiniNavCard
-              title="Historique"
-              icon={<Calendar size={24} />}
-              href="/historique"
-              color="#ec4899" // Rose
-            />
-            <TransportLinesIndicator />
             {/* Card détaillée pour les retards en temps réel */}
             <RealTimeDelayCard delayStats={delayStats} />
             <IncidentCalendar />
-            {/* Afficher la ligne avec l'écart le plus extrême */}
-            {extremeRoute && (
-              <Card
-                title={`Écart le plus extrême`}
-                value={`${extremeRoute.route_number}: ${formatTimeOffset(
-                  extremeRoute.processedDelay
-                )}`}
-                icon={<Clock size={24} />}
-                color={extremeRoute.processedDelay < 0 ? "green" : "red"}
-              />
-            )}
             <div className={styles.fullWidthCard}>
               <NextDepartures stopId="1240" limit={5} />
             </div>{" "}
