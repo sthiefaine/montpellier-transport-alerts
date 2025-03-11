@@ -75,7 +75,9 @@ export default function DeparturesFinder({
   const [filteredStops, setFilteredStops] = useState<Stop[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
-  const [selectedDirection, setSelectedDirection] = useState<number | null>(null);
+  const [selectedDirection, setSelectedDirection] = useState<number | null>(
+    null
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"lines" | "stops">("lines");
@@ -97,32 +99,32 @@ export default function DeparturesFinder({
       setIsLoading(true);
       // Utiliser le shortName pour récupérer tous les arrêts de la ligne
       const shortName = route.shortName;
-      
+
       const response = await fetch(`/api/routes/${shortName}/stops`);
-      
+
       if (!response.ok) {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log(`Loaded ${data.length} stops for line ${shortName}`);
-      
+
       // Trier les arrêts : d'abord par direction, puis par position
       const sortedStops = data.sort((a: any, b: any) => {
         // D'abord trier par direction
         if (a.directionId !== b.directionId) {
           return (a.directionId || 0) - (b.directionId || 0);
         }
-        
+
         // Ensuite par position
         if (a.position !== undefined && b.position !== undefined) {
           return a.position - b.position;
         }
-        
+
         // En dernier recours par nom
         return a.name.localeCompare(b.name);
       });
-      
+
       setStopsForRoute(sortedStops);
     } catch (error) {
       console.error("Erreur lors du chargement des arrêts:", error);
@@ -166,7 +168,7 @@ export default function DeparturesFinder({
 
   // Gérer la sélection d'une ligne
   const handleRouteSelect = (route: Route) => {
-    console.log('Selected route:', route);
+    console.log("Selected route:", route);
     setSelectedRoute(route);
     setSelectedStop(null);
     setActiveTab("stops");
@@ -176,13 +178,15 @@ export default function DeparturesFinder({
   // Gérer la sélection d'un arrêt
   const handleStopSelect = (stop: Stop) => {
     setSelectedStop(stop);
-    
+
     // Si la direction est sur "Toutes" (null) et que l'arrêt a une direction spécifique
     if (selectedDirection === null && stop.directionId !== undefined) {
-      console.log(`Automatically selecting direction ${stop.directionId} based on stop ${stop.name}`);
+      console.log(
+        `Automatically selecting direction ${stop.directionId} based on stop ${stop.name}`
+      );
       setSelectedDirection(stop.directionId);
     }
-    
+
     // Si on a sélectionné via la recherche, réinitialiser la ligne et la direction
     if (!selectedRoute) {
       setSelectedDirection(null);
@@ -280,7 +284,7 @@ export default function DeparturesFinder({
                 )}
               </div>
 
-          <StopSelector
+              <StopSelector
                 stops={
                   searchQuery
                     ? filteredStops
@@ -379,7 +383,7 @@ export default function DeparturesFinder({
       <div className={styles.resultsPanel}>
         {selectedStop ? (
           <NextDepartures
-            stopId={selectedStop.id}
+            initialStopIds={selectedStop.id}
             routeId={selectedRoute ? getRouteId(selectedRoute) : undefined}
             directionId={selectedDirection}
             limit={20}

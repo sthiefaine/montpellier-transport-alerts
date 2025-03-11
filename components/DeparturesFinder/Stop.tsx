@@ -102,7 +102,7 @@ export default function StopSelector({
                   {stop.isTerminus && <span className={styles.terminusBadge}>Terminus</span>}
                 </span>
                 {stop.code && (
-                  <span className={styles.stopCode}>Code: {stop.code}</span>
+                  <span className={styles.stopCode}>ID: {stop.id}</span>
                 )}
                 {stop.position !== undefined && stop.directionId !== undefined && (
                   <span className={styles.stopPosition}>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import styles from "./page.module.css";
 import { Clock, TrendingUp, AlertTriangle, LineChart } from "lucide-react";
+import { formatSecondsToTime } from "@/helpers/time";
 
 interface EnhancedSummaryStats {
   punctuality_rate: number;
@@ -132,7 +133,7 @@ export default function PonctualiteOverviewPage() {
           ) : (
             <>
               <div className={styles.statValue}>
-                {stats?.max_delay_seconds || 0}s
+                {formatSecondsToTime(stats?.max_delay_seconds || 0)}
               </div>
               <p className={styles.statDescription}>
                 Retard le plus important observé
@@ -182,7 +183,7 @@ export default function PonctualiteOverviewPage() {
                 </div>
                 <div className={styles.detailItem}>
                   <span>Retard moyen positif</span>
-                  <span>{stats?.avg_positive_delay || 0}s</span>
+                  <span>{formatSecondsToTime(stats?.avg_positive_delay || 0)}</span>
                 </div>
               </div>
             </>

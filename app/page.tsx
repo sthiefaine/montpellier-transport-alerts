@@ -1,7 +1,6 @@
 "use server";
 import React from "react";
 import styles from "./page.module.css";
-import Card from "@/components/Cards/Card";
 import {
   AlertTriangle,
   ArrowDown,
@@ -10,9 +9,7 @@ import {
   Clock,
   MapPin,
 } from "lucide-react";
-import TransportLinesIndicator from "../components/TransportLinesIndicator/TransportLinesIndicator";
 import IncidentCalendar from "@/components/IncidentCalendar/IncidentCalendar";
-import RealTimeDelayCard from "@/components/Cards/RealTimeDelay/RealTimeDelay";
 import NextDepartures from "@/components/NextDepartures/NextDepartures";
 import MiniNavCard from "@/components/Cards/MiniNavCard/MiniNavCard";
 
@@ -308,9 +305,12 @@ export default async function Home() {
               href="/stats"
               color="#8b5cf6" // Violet
             />
-            <IncidentCalendar />
             <div className={styles.fullWidthCard}>
-              <NextDepartures stopId="1240" limit={5} />
+            <IncidentCalendar />
+            </div>
+
+            <div className={styles.fullWidthCard}>
+              <NextDepartures initialStopIds={["1240", "1187"]} limit={10} />
             </div>{" "}
           </div>
         </section>

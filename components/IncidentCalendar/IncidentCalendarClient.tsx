@@ -71,7 +71,7 @@ const getMonthName = (month: number): string => {
 
 export default function IncidentCalendarClient({
   calendarData,
-  fixedMonths = 9,
+  fixedMonths = 13, // Changé de 9 à 13 mois
 }: IncidentCalendarClientProps) {
   const calendarRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -88,7 +88,7 @@ export default function IncidentCalendarClient({
   const [startDate, setStartDate] = useState<Date>(() => {
     const date = new Date();
     date.setDate(1);
-    date.setMonth(date.getMonth() - 6);
+    date.setMonth(date.getMonth() - 6); // 6 mois avant le mois courant
     return date;
   });
 
@@ -103,6 +103,19 @@ export default function IncidentCalendarClient({
       setMaxCount(max > 0 ? max : 5);
     }
   }, [calendarData]);
+
+  // Centrer automatiquement sur le mois courant lors du chargement initial
+  useEffect(() => {
+    if (wrapperRef.current) {
+      // Trouver la position approximative du mois courant (au milieu)
+      const centerWeek = Math.round(weeksToShow / 2);
+      const centerPosition = centerWeek * 14; // 14px par colonne
+      
+      // Ajuster pour centrer dans la fenêtre
+      const halfViewportWidth = wrapperRef.current.clientWidth / 2;
+      wrapperRef.current.scrollLeft = centerPosition - halfViewportWidth;
+    }
+  }, [weeksToShow]);
 
   // Naviguer vers la période précédente
   const navigateBack = () => {
@@ -130,14 +143,19 @@ export default function IncidentCalendarClient({
   const navigateToday = () => {
     const today = new Date();
     today.setDate(1);
-    today.setMonth(today.getMonth() - 6);
+    today.setMonth(today.getMonth() - 6); // Le mois courant sera au milieu
     setStartDate(today);
 
     // Faire défiler vers la position appropriée
     setTimeout(() => {
       if (wrapperRef.current) {
-        const todayPosition = weeksToShow * 0.6 * 14;
-        wrapperRef.current.scrollLeft = todayPosition;
+        // Centrer le mois courant dans la vue
+        const centerWeek = Math.round(weeksToShow / 2);
+        const centerPosition = centerWeek * 14; // 14px par colonne
+        
+        // Ajuster pour centrer dans la fenêtre
+        const halfViewportWidth = wrapperRef.current.clientWidth / 2;
+        wrapperRef.current.scrollLeft = centerPosition - halfViewportWidth;
       }
     }, 10);
   };
@@ -149,7 +167,7 @@ export default function IncidentCalendarClient({
     const currentYear = today.getFullYear();
 
     const visibleEndDate = new Date(startDate);
-    visibleEndDate.setMonth(visibleEndDate.getMonth() + 8);
+    visibleEndDate.setMonth(visibleEndDate.getMonth() + fixedMonths - 1);
 
     return (
       (visibleEndDate.getMonth() >= currentMonth &&
@@ -218,21 +236,16 @@ export default function IncidentCalendarClient({
             key={`${week}-${day}`}
             className={`${styles.dayCell} ${isToday ? styles.todayCell : ""}`}
             style={{ backgroundColor: color }}
-            onClick={() => {
-              if (count > 0) {
-              }
-            }}
             onMouseEnter={(e) => {
               if (calendarRef.current) {
                 const rect = e.currentTarget.getBoundingClientRect();
-                const calendarRect =
-                  calendarRef.current.getBoundingClientRect();
+                const calendarRect = calendarRef.current.getBoundingClientRect();
 
                 setTooltip({
                   date: dateString,
                   count,
-                  x: 140,
-                  y: 70,
+                  x: rect.left + rect.width / 2 - calendarRect.left,
+                  y: rect.top - calendarRect.top,
                   visible: true,
                 });
               }
@@ -257,8 +270,6 @@ export default function IncidentCalendarClient({
     // Générer les étiquettes de mois avec un positionnement amélioré
     const monthElements = monthLabels.map((label, index) => {
       // Calculer la position plus précisément
-      // Décaler le label pour aligner avec le premier jour du mois
-      // Ajouter 18px pour tenir compte de la première colonne d'en-têtes
       const position = label.position * COLUMN_WIDTH + 18;
 
       return (

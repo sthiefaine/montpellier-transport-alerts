@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Clock, ArrowRight, Bus, MapPin } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { RefreshCw, Clock, ArrowRight, Bus, MapPin, Search, X, Plus, Settings } from "lucide-react";
 import styles from "./NextDepartures.module.css";
 
 interface NextDepartureData {
@@ -28,25 +28,264 @@ interface NextDepartureData {
   formattedEstimated: string | null;
 }
 
+interface StopData {
+  id: string;
+  name: string;
+  code?: string | null;
+}
+
 interface NextDeparturesProps {
-  stopId?: string;
-  routeId?: string; // Single routeId
-  directionId?: number | null; // 0, 1 or null (for both directions)
+  // Support pour les deux formats d'API
+  stopId?: string | string[]; // API legacy
+  initialStopIds?: string | string[]; // Nouvelle API
+  routeId?: string;
+  directionId?: number | null;
   limit?: number;
   refreshInterval?: number;
   showTitle?: boolean;
   displayMode?: "auto" | "table" | "cards";
+  onStopIdsChange?: (stopIds: string[]) => void;
+  enableStopSelector?: boolean; // Permet de désactiver le sélecteur
 }
+
+// Composant de popup pour la sélection d'arrêts
+const StopSelector = ({ 
+  isOpen, 
+  onClose, 
+  selectedStops, 
+  onStopIdsChange 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  selectedStops: StopData[]; 
+  onStopIdsChange: (stops: StopData[]) => void;
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<StopData[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedStopsList, setSelectedStopsList] = useState<StopData[]>(selectedStops);
+  
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Focaliser l'input de recherche quand la popup s'ouvre
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+  
+  // Recherche d'arrêts via API
+  const searchStops = async (term: string) => {
+    if (term.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/gtfs/stops/search?q=${encodeURIComponent(term)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (err) {
+      console.error("Erreur lors de la recherche d'arrêts:", err);
+      setError("Impossible de rechercher des arrêts");
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // Recherche avec debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm) {
+        searchStops(searchTerm);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // Ajouter un arrêt à la sélection
+  const addStop = (stop: StopData) => {
+    // Vérifier si l'arrêt est déjà sélectionné
+    if (!selectedStopsList.some(s => s.id === stop.id)) {
+      const newSelection = [...selectedStopsList, stop];
+      setSelectedStopsList(newSelection);
+    }
+  };
+  
+  // Supprimer un arrêt de la sélection
+  const removeStop = (stopId: string) => {
+    const newSelection = selectedStopsList.filter(s => s.id !== stopId);
+    setSelectedStopsList(newSelection);
+  };
+  
+  // Valider la sélection
+  const confirmSelection = () => {
+    onStopIdsChange(selectedStopsList);
+    onClose();
+  };
+  
+  // Si la popup n'est pas ouverte, ne rien afficher
+  if (!isOpen) return null;
+  
+  return (
+    <div className={styles.stopSelectorOverlay}>
+      <div className={styles.stopSelectorModal}>
+        <div className={styles.stopSelectorHeader}>
+          <h3>Sélectionner des arrêts</h3>
+          <button onClick={onClose} className={styles.closeButton}>
+            <X size={16} />
+          </button>
+        </div>
+        
+        <div className={styles.stopSelectorContent}>
+          {/* Section de recherche */}
+          <div className={styles.searchContainer}>
+            <div className={styles.searchInputWrapper}>
+              <Search size={16} className={styles.searchIcon} />
+              <input 
+                ref={searchInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher un arrêt..."
+                className={styles.searchInput}
+              />
+              {searchTerm && (
+                <button 
+                  className={styles.clearSearchButton}
+                  onClick={() => setSearchTerm("")}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Liste des arrêts sélectionnés */}
+          <div className={styles.selectedStopsContainer}>
+            <h4>Arrêts sélectionnés ({selectedStopsList.length})</h4>
+            {selectedStopsList.length === 0 ? (
+              <div className={styles.noStopsSelected}>
+                Aucun arrêt sélectionné
+              </div>
+            ) : (
+              <div className={styles.selectedStopsList}>
+                {selectedStopsList.map(stop => (
+                  <div key={stop.id} className={styles.selectedStopItem}>
+                    <div className={styles.selectedStopName}>
+                      <MapPin size={14} className={styles.stopIcon} />
+                      {stop.name}
+                      {stop.code && <span className={styles.stopCode}> ({stop.code})</span>}
+                    </div>
+                    <button 
+                      className={styles.removeStopButton}
+                      onClick={() => removeStop(stop.id)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Résultats de recherche */}
+          {searchTerm && (
+            <div className={styles.searchResultsContainer}>
+              <h4>Résultats de recherche</h4>
+              
+              {isSearching ? (
+                <div className={styles.searchingIndicator}>
+                  <div className={styles.smallSpinner}></div>
+                  Recherche en cours...
+                </div>
+              ) : error ? (
+                <div className={styles.searchError}>{error}</div>
+              ) : searchResults.length === 0 ? (
+                <div className={styles.noSearchResults}>
+                  Aucun résultat trouvé pour "{searchTerm}"
+                </div>
+              ) : (
+                <div className={styles.searchResultsList}>
+                  {searchResults.map(stop => {
+                    const isAlreadySelected = selectedStopsList.some(s => s.id === stop.id);
+                    return (
+                      <div 
+                        key={stop.id} 
+                        className={`${styles.searchResultItem} ${isAlreadySelected ? styles.alreadySelected : ''}`}
+                      >
+                        <div className={styles.stopSearchInfo}>
+                          <MapPin size={14} className={styles.stopIcon} />
+                          {stop.name}
+                          {stop.code && <span className={styles.stopCode}> ({stop.code})</span>}
+                        </div>
+                        <button 
+                          className={styles.addStopButton}
+                          onClick={() => addStop(stop)}
+                          disabled={isAlreadySelected}
+                        >
+                          {isAlreadySelected ? 'Ajouté' : <Plus size={14} />}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className={styles.stopSelectorFooter}>
+          <button className={styles.cancelButton} onClick={onClose}>
+            Annuler
+          </button>
+          <button 
+            className={styles.confirmButton} 
+            onClick={confirmSelection}
+          >
+            Valider ({selectedStopsList.length} arrêt{selectedStopsList.length !== 1 ? 's' : ''})
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const NextDepartures: React.FC<NextDeparturesProps> = ({
   stopId,
+  initialStopIds,
   routeId,
   directionId,
   limit = 10,
-  refreshInterval = 60000, // 60 secondes par défaut
+  refreshInterval = 60000,
   showTitle = true,
   displayMode = "auto",
+  onStopIdsChange,
+  enableStopSelector = true,
 }) => {
+  // Conversion des stopIds fournis en tableau
+  // Priorité à initialStopIds, fallback sur stopId pour la rétrocompatibilité
+  const getInitialStopIds = (): string[] => {
+    const idSource = initialStopIds !== undefined ? initialStopIds : stopId;
+    if (!idSource) return [];
+    return Array.isArray(idSource) ? idSource : [idSource];
+  };
+
+  const [stopIds, setStopIds] = useState<string[]>(getInitialStopIds());
+  const [stopDetails, setStopDetails] = useState<StopData[]>([]);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  
   const [departures, setDepartures] = useState<NextDepartureData[]>([]);
   const [countdowns, setCountdowns] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -55,6 +294,50 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   const [viewMode, setViewMode] = useState<"table" | "cards">(
     displayMode === "auto" ? "table" : displayMode
   );
+  const [stopNames, setStopNames] = useState<string[]>([]);
+
+  // Effet pour mettre à jour les stopIds si les props changent (pour le mode contrôlé)
+  useEffect(() => {
+    const newStopIds = getInitialStopIds();
+    // Seulement si les IDs ont changé et que ce n'est pas juste une initialisation
+    if (JSON.stringify(newStopIds) !== JSON.stringify(stopIds)) {
+      setStopIds(newStopIds);
+    }
+  }, [stopId, initialStopIds]);
+
+  // Récupérer les détails des arrêts
+  useEffect(() => {
+    const fetchStopDetails = async () => {
+      if (stopIds.length === 0) {
+        setStopDetails([]);
+        return;
+      }
+      
+      try {
+        const queries = stopIds.map(id => `id=${encodeURIComponent(id)}`).join('&');
+        const response = await fetch(`/api/gtfs/stops/details?${queries}`);
+        
+        if (!response.ok) {
+          throw new Error(`Erreur ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setStopDetails(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des détails d'arrêts:", err);
+        // Ne pas modifier les détails existants en cas d'erreur
+      }
+    };
+    
+    fetchStopDetails();
+  }, [stopIds]);
+  
+  // Mettre à jour le parent si le callback existe
+  useEffect(() => {
+    if (onStopIdsChange) {
+      onStopIdsChange(stopIds);
+    }
+  }, [stopIds, onStopIdsChange]);
 
   // Détecter la taille de l'écran pour le mode responsive
   useEffect(() => {
@@ -79,14 +362,24 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   }, [displayMode]);
 
   const fetchDepartures = async () => {
+    if (stopIds.length === 0) {
+      setDepartures([]);
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
 
       let url = "/api/gtfs/departures/next?limit=" + limit;
 
-      // Ajouter les paramètres de filtrage
-      if (stopId) url += "&stopId=" + stopId;
-      if (routeId) url += "&routeId=" + routeId;
+      // Ajouter les stopIds à l'URL
+      stopIds.forEach(id => {
+        url += "&stopId=" + encodeURIComponent(id);
+      });
+
+      // Ajouter les autres paramètres
+      if (routeId) url += "&routeId=" + encodeURIComponent(routeId);
       if (directionId !== undefined && directionId !== null)
         url += "&directionId=" + directionId;
 
@@ -110,6 +403,10 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
             : null,
         };
       });
+
+      // Extraire les noms d'arrêts uniques
+      const uniqueStopNames = [...new Set<string>(adjustedData.map((d: NextDepartureData) => d.stop.name))];
+      setStopNames(uniqueStopNames);
 
       setDepartures(adjustedData);
       setLastUpdated(new Date());
@@ -182,8 +479,8 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     return () => clearInterval(intervalId);
   }, [departures, calculateCountdown]);
 
+  // Charger les départs lors de l'initialisation et après chaque changement de filtres
   useEffect(() => {
-    // Charger les données immédiatement
     fetchDepartures();
 
     // Configurer la mise à jour périodique
@@ -191,7 +488,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
 
     // Nettoyer l'intervalle lors du démontage
     return () => clearInterval(interval);
-  }, [stopId, routeId, directionId, limit, refreshInterval]);
+  }, [stopIds, routeId, directionId, limit, refreshInterval]);
 
   // Formatter le retard pour l'affichage
   const formatDelay = (seconds: number | null) => {
@@ -256,6 +553,12 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     // Utiliser l'index original et un index secondaire pour garantir l'unicité absolue
     return `idx-${departure._index}-${index}`;
   };
+  
+  // Gérer les modifications de la sélection d'arrêts
+  const handleStopSelection = (selectedStops: StopData[]) => {
+    const newStopIds = selectedStops.map(stop => stop.id);
+    setStopIds(newStopIds);
+  };
 
   // Rendu du tableau pour desktop
   const renderTable = () => (
@@ -264,7 +567,8 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
         <thead>
           <tr>
             <th>Ligne</th>
-            {!stopId && <th>Arrêt</th>}
+            {/* Toujours afficher l'arrêt quand on a plusieurs stopId */}
+            {(stopIds.length !== 1) && <th>Arrêt</th>}
             <th>Direction</th>
             <th>Retard</th>
             <th>ETA</th>
@@ -284,7 +588,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
                   {departure.line.number}
                 </div>
               </td>
-              {!stopId && (
+              {(stopIds.length !== 1) && (
                 <td className={styles.stopColumn}>{departure.stop.name}</td>
               )}
               <td
@@ -361,7 +665,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
           </div>
 
           <div className={styles.cardDetails}>
-            {!stopId && (
+            {(stopIds.length !== 1) && (
               <div className={styles.cardStop}>
                 <MapPin size={14} className={styles.cardIcon} />
                 {departure.stop.name}
@@ -386,18 +690,44 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     </div>
   );
 
+  // Créer l'affichage des noms d'arrêts dans le titre
+  const renderStopNames = () => {
+    // Si aucun nom d'arrêt, retourner une chaîne vide
+    if (stopNames.length === 0) return "";
+    
+    // Si un seul arrêt, afficher son nom
+    if (stopNames.length === 1) return `Arrêt: ${stopNames[0]}`;
+    
+    // Si 2 ou 3 arrêts, les afficher tous
+    if (stopNames.length <= 3) return `Arrêts: ${stopNames.join(", ")}`;
+    
+    // Si plus de 3 arrêts, montrer les 2 premiers et le nombre total
+    return `Arrêts: ${stopNames[0]}, ${stopNames[1]} et ${stopNames.length - 2} autres`;
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         {showTitle && (
-          <h3 className={styles.title}>
-            Prochains départs
-            {stopId && departures.length > 0 && (
-              <span className={styles.subtitle}>
-                Arrêt: {departures[0].stop.name}
-              </span>
+          <div className={styles.titleContainer}>
+            <h3 className={styles.title}>
+              Prochains départs
+              {stopIds.length > 0 && departures.length > 0 && (
+                <span className={styles.subtitle}>
+                  {renderStopNames()}
+                </span>
+              )}
+            </h3>
+            {enableStopSelector && (
+              <button 
+                className={styles.selectStopsButton}
+                onClick={() => setIsSelectorOpen(true)}
+                title="Sélectionner des arrêts"
+              >
+                <Settings size={16} />
+              </button>
             )}
-          </h3>
+          </div>
         )}
 
         <div className={styles.headerActions}>
@@ -425,7 +755,20 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
         </div>
       </div>
 
-      {error ? (
+      {/* Message pour inviter à sélectionner des arrêts quand aucun n'est sélectionné */}
+      {stopIds.length === 0 ? (
+        <div className={styles.noStopsSelected}>
+          <p>Aucun arrêt sélectionné</p>
+          {enableStopSelector && (
+            <button 
+              className={styles.selectFirstStopButton}
+              onClick={() => setIsSelectorOpen(true)}
+            >
+              Sélectionner des arrêts
+            </button>
+          )}
+        </div>
+      ) : error ? (
         <div className={styles.error}>{error}</div>
       ) : loading && departures.length === 0 ? (
         <div className={styles.loading}>
@@ -445,6 +788,16 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
             </div>
           )}
         </>
+      )}
+      
+      {/* Popup de sélection d'arrêts */}
+      {enableStopSelector && (
+        <StopSelector 
+          isOpen={isSelectorOpen}
+          onClose={() => setIsSelectorOpen(false)}
+          selectedStops={stopDetails}
+          onStopIdsChange={handleStopSelection}
+        />
       )}
     </div>
   );

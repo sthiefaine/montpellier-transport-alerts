@@ -2,7 +2,7 @@ import { Calendar } from "lucide-react";
 import { Suspense } from "react";
 import IncidentCalendarClient from "./IncidentCalendarClient";
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 3600;
 
 interface IncidentCalendarProps {
   fixedMonths?: number;
@@ -14,7 +14,7 @@ async function getCalendarData(months: number = 18) {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/alerts/calendar?months=${months}`, {
       next: {
         tags: ['alerts-calendar'],
-        revalidate: 3600 // Revalidation every hour
+        revalidate: 3600
       }
     });
     

@@ -1,0 +1,259 @@
+/* PonctualiteRoutes.module.css */
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cardHeader {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f3f4f6;
+  background-color: #f9fafb;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.titleIcon {
+  color: #6b7280;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timeframeSelector {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.timeframeButton {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.timeframeButton:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.activeTimeframe {
+  background-color: white;
+  color: #1f2937;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.cardContent {
+  padding: 0;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th {
+  text-align: left;
+  font-weight: 500;
+  color: #6b7280;
+  background-color: #f9fafb;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortableHeader:hover {
+  background-color: #f3f4f6;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sortAsc {
+  transform: rotate(180deg);
+}
+
+.sortDesc {
+  transform: rotate(0deg);
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #4b5563;
+}
+
+.routeCell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.routeColor {
+  width: 0.75rem;
+  height: 1.5rem;
+  border-radius: 0.125rem;
+  flex-shrink: 0;
+}
+
+.routeInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.routeNumber {
+  font-weight: 600;
+  color: #111827;
+}
+
+.routeName {
+  font-size: 0.75rem;
+  color: #6b7280;
+  max-width: 12rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delayValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.aberrantValue {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.25rem;
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.375rem;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.goodDelay {
+  color: #22c55e;
+}
+
+.mediumDelay {
+  color: #eab308;
+}
+
+.badDelay {
+  color: #f97316;
+}
+
+.veryBadDelay {
+  color: #ef4444;
+}
+
+.punctualityWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.punctualityValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.progressContainer {
+  height: 0.375rem;
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.observationsCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.skeletonTable {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skeletonRow {
+  display: flex;
+  gap: 1rem;
+}
+
+.skeletonCell {
+  height: 1.5rem;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  flex: 1;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.noData {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}

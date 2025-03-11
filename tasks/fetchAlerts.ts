@@ -21,7 +21,7 @@ function isComplement(headerText: string, descriptionText: string) {
     header.includes("complément") ||
     description.includes("complément d'info") ||
     description.includes("complément d'information") ||
-    description.startsWith("complément")
+    description.startsWith("complément") || description.includes("fin alerte")
   );
 }
 

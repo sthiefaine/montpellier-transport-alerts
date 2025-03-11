@@ -7,7 +7,8 @@ const prisma = new PrismaClient();
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const stopId = url.searchParams.get("stopId");
+    // Récupérer tous les stopId (pour supporter les arrêts multiples)
+    const stopIds = url.searchParams.getAll("stopId");
     const routeId = url.searchParams.get("routeId");
     const directionId = url.searchParams.get("directionId");
     const limit = parseInt(url.searchParams.get("limit") || "10");
@@ -57,9 +58,17 @@ export async function GET(request: Request) {
       ],
     };
 
-    // Ajouter le filtre par arrêt si spécifié
-    if (stopId) {
-      whereClause.stopId = stopId;
+    // Ajouter le filtre par arrêt(s) si spécifié(s)
+    if (stopIds && stopIds.length > 0) {
+      if (stopIds.length === 1) {
+        // Si un seul arrêt, utiliser l'égalité simple
+        whereClause.stopId = stopIds[0];
+      } else {
+        // Si plusieurs arrêts, utiliser l'opérateur in de Prisma
+        whereClause.stopId = {
+          in: stopIds,
+        };
+      }
     }
 
     // Ajouter le filtre par route si spécifié
@@ -136,11 +145,12 @@ export async function GET(request: Request) {
 
       if (!scheduledTime) continue;
 
-      // Créer une clé unique basée sur la ligne, la destination et l'heure planifiée
+      // Créer une clé unique basée sur la ligne, la destination, l'arrêt et l'heure planifiée
       // Arrondir l'heure planifiée à la minute pour regrouper les départs très proches
       const scheduledMinute = Math.floor(scheduledTime.getTime() / 60000);
       const directionHeadsign = departure.trip?.headsign || "";
-      const uniqueKey = `${departure.routeId}_${directionHeadsign}_${scheduledMinute}`;
+      // Inclure l'ID de l'arrêt dans la clé unique pour éviter la déduplication entre arrêts différents
+      const uniqueKey = `${departure.routeId}_${directionHeadsign}_${departure.stopId}_${scheduledMinute}`;
 
       if (!uniqueKeys.has(uniqueKey)) {
         uniqueKeys.add(uniqueKey);
