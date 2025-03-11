@@ -26,6 +26,10 @@
       "schedule": "0 1 * * *"
     },
     {
+      "path": "/api/cron/update-lines",
+      "schedule": "10 1 * * *"
+    },
+    {
       "path": "/api/gtfs/metrics/compute-daily",
       "schedule": "0 4 * * *"
     },

@@ -5,15 +5,15 @@ import { prisma } from "@/lib/prisma";
 // Types pour les structures de données
 interface RouteBasic {
   id: string;
-  shortName: string;
-  longName: string;
+  shortName: string | null; // Modifier ici pour accepter null
+  longName: string | null; // Modifier ici pour accepter null
   color: string | null;
   type: number;
 }
 
 interface RouteWithTrips {
   id: string;
-  shortName: string;
+  shortName: string | null;
   _count: {
     trips: number;
   };
@@ -28,10 +28,10 @@ interface Direction {
 
 interface EnrichedRoute {
   id: string;
-  shortName: string;
-  number: string;
-  name: string;
-  longName: string;
+  shortName: string | null;
+  number: string | null;
+  name: string | null;
+  longName: string | null;
   color: string | null;
   type: number;
   routeId: string;
@@ -42,7 +42,7 @@ interface EnrichedRoute {
 }
 
 // Fonction pour extraire les origines et destinations à partir du nom de la ligne
-function extractDestinationsFromRouteName(routeName: string): {
+function extractDestinationsFromRouteName(routeName: string | null): {
   origin: string;
   destination: string;
 } {

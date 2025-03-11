@@ -180,18 +180,6 @@ async function collectRealtimeData() {
     }
   }
 
-  console.log(`
-  --- Statistiques de filtrage ---
-  Entités totales: ${entityCount}
-  Avec tripUpdate: ${tripUpdateCount}
-  Avec trip valide: ${validTripCount}
-  Avec stopTimeUpdate valide: ${validStopTimeCount}
-  Avec stopId valide: ${validStopIdCount}
-  Avec arrival: ${validArrivalCount}
-  Avec departure: ${validDepartureCount}
-  Avec delay valide: ${validDelayCount}
-  `);
-
   console.log(
     `Préparation de ${delaysToInsert.length} enregistrements à insérer`
   );
@@ -264,7 +252,7 @@ async function collectRealtimeData() {
 
     console.log(`Inséré ${result.count} enregistrements de délais`);
 
-    // Nettoyage des données anciennes (garder 7 jours)
+    // Nettoyage des données anciennes
     const deleteResult = await prisma.realtimeDelay.deleteMany({
       where: {
         collectedAt: {
