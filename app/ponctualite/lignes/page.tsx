@@ -23,6 +23,7 @@ export default function PonctualiteRoutesPage() {
         // Récupérer les statistiques par route
         const routeStatsResponse = await fetch("/api/gtfs/delays/by-route");
         const routeStatsData = await routeStatsResponse.json();
+        console.log('test', routeStatsData)
         setRouteStats(routeStatsData);
       } catch (error) {
         console.error("Erreur lors de la récupération des données:", error);

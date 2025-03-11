@@ -3,32 +3,18 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Fonction utilitaire pour convertir les BigInt en Number
-function sanitizeForJSON(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (typeof obj === "bigint") {
-    return Number(obj);
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => sanitizeForJSON(item));
-  }
-
-  if (typeof obj === "object") {
-    return Object.fromEntries(
-      Object.entries(obj).map(([key, value]) => [key, sanitizeForJSON(value)])
-    );
-  }
-
-  return obj;
+interface RawRouteDelay {
+  route_number: string | null;
+  route_name: string | null;
+  avg_delay_seconds: number | { d: number[]; e: number; s: number };
+  observations: number | bigint;
+  punctuality_percentage: number | { d: number[]; e: number; s: number };
+  color: string | null;
 }
 
 export async function GET() {
   try {
-    const routeDelays = await prisma.$queryRaw`
+    const routeDelays: RawRouteDelay[] = await prisma.$queryRaw`
       SELECT 
         r."route_short_name" as route_number,
         r."route_long_name" as route_name,
@@ -38,16 +24,41 @@ export async function GET() {
         '#' || r.route_color as color
       FROM "realtime_delays" rd
       JOIN "routes" r ON rd."route_id" = r."route_id"
-      WHERE rd."collected_at" > NOW() - INTERVAL '24 hours'
+      WHERE rd."collected_at" > NOW() - INTERVAL '7 days'  -- Augmenter la plage à 7 jours
       AND rd."status" = 'SCHEDULED'
       GROUP BY r."route_id", r."route_short_name", r."route_long_name", r.route_color
-      ORDER BY avg_delay_seconds DESC
+      ORDER BY observations DESC  -- Trier par nombre d'observations pour voir les lignes les plus actives
     `;
 
-    // Sanitiser les résultats pour convertir les BigInt en Number
-    const sanitizedResults = sanitizeForJSON(routeDelays);
+    // Ajouter un log pour voir les données brutes
+    console.log("Nombre de routes récupérées:", routeDelays.length);
 
-    return NextResponse.json(sanitizedResults);
+    // Version améliorée du sanitizer spécifique à cette structure de données
+    const formattedResults = routeDelays.map((item) => ({
+      route_number: String(item.route_number || ""),
+      route_name: String(item.route_name || ""),
+      color: String(item.color || "#ccc"),
+      avg_delay_seconds:
+        typeof item.avg_delay_seconds === "object" && item.avg_delay_seconds.d
+          ? Number(
+              item.avg_delay_seconds.d[0] /
+                Math.pow(10, item.avg_delay_seconds.e)
+            )
+          : Number(item.avg_delay_seconds || 0),
+      punctuality_percentage:
+        typeof item.punctuality_percentage === "object" &&
+        item.punctuality_percentage.d
+          ? Number(
+              item.punctuality_percentage.d[0] /
+                Math.pow(10, item.punctuality_percentage.e)
+            )
+          : Number(item.punctuality_percentage || 0),
+      observations: Number(item.observations || 0),
+    }));
+
+    console.log("Données formatées - premier élément:", formattedResults[0]);
+
+    return NextResponse.json(formattedResults);
   } catch (error) {
     console.error("Erreur API by-route:", error);
     if (error instanceof Error) {

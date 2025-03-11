@@ -38,10 +38,6 @@
       "schedule": "5 * * * *"
     },
     {
-      "path": "/api/gtfs/metrics/compute-detailed",
-      "schedule": "15 4 * * *"
-    },
-    {
       "path": "/api/gtfs/weather/analyze",
       "schedule": "25 4 * * *"
     },

@@ -308,8 +308,6 @@ export default async function Home() {
               href="/stats"
               color="#8b5cf6" // Violet
             />
-            {/* Card détaillée pour les retards en temps réel */}
-            <RealTimeDelayCard delayStats={delayStats} />
             <IncidentCalendar />
             <div className={styles.fullWidthCard}>
               <NextDepartures stopId="1240" limit={5} />

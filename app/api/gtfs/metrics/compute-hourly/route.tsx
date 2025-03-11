@@ -103,25 +103,68 @@ export async function GET(request: Request) {
     }
 
     // Suppression des métriques horaires existantes pour cette date et heure
-    if (targetHour !== null) {
-      const deleteCount = await prisma.hourlyMetric.deleteMany({
-        where: {
-          date: targetDate,
-          hour: targetHour,
-        },
-      });
-      console.log(
-        `${deleteCount.count} métriques existantes supprimées pour ${dateString}, heure ${targetHour}`
-      );
+    // Vérifier si la date cible est récente (aujourd'hui ou hier)
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const isRecentDate =
+      targetDate.toDateString() === now.toDateString() ||
+      targetDate.toDateString() === yesterday.toDateString();
+
+    // Ne supprimer que si c'est une date récente
+    if (isRecentDate) {
+      if (targetHour !== null) {
+        const deleteCount = await prisma.hourlyMetric.deleteMany({
+          where: {
+            date: targetDate,
+            hour: targetHour,
+          },
+        });
+        console.log(
+          `${deleteCount.count} métriques existantes supprimées pour ${dateString}, heure ${targetHour}`
+        );
+      } else {
+        const deleteCount = await prisma.hourlyMetric.deleteMany({
+          where: {
+            date: targetDate,
+          },
+        });
+        console.log(
+          `${deleteCount.count} métriques existantes supprimées pour ${dateString}`
+        );
+      }
     } else {
-      const deleteCount = await prisma.hourlyMetric.deleteMany({
+      console.log(
+        `Conservation des données pour ${dateString} (date non récente)`
+      );
+
+      // Vérifier si des données existent déjà pour éviter les doublons
+      const existingMetrics = await prisma.hourlyMetric.findMany({
         where: {
           date: targetDate,
+          ...(targetHour !== null ? { hour: targetHour } : {}),
         },
+        select: { routeId: true, hour: true },
       });
-      console.log(
-        `${deleteCount.count} métriques existantes supprimées pour ${dateString}`
-      );
+
+      if (existingMetrics.length > 0) {
+        console.log(
+          `${existingMetrics.length} métriques horaires existantes trouvées pour ${dateString}`
+        );
+
+        // Si on est en mode jour complet et qu'il y a déjà 24 heures × nombre de routes de métriques, on peut sauter
+        if (targetHour === null && existingMetrics.length >= 24) {
+          console.log(
+            `Données complètes déjà présentes pour ${dateString}, calcul ignoré`
+          );
+          return NextResponse.json({
+            status: "success",
+            date: dateString,
+            message: `Métriques horaires déjà présentes pour ${dateString}, calcul ignoré`,
+          });
+        }
+      }
     }
 
     // Obtenir toutes les lignes avec des données pour cette période
@@ -183,6 +226,24 @@ export async function GET(request: Request) {
 
       for (const hour of hoursToProcess) {
         try {
+          // Pour les dates non récentes, vérifier si la métrique existe déjà
+          if (!isRecentDate) {
+            const existingMetric = await prisma.hourlyMetric.findFirst({
+              where: {
+                date: targetDate,
+                hour,
+                routeId,
+              },
+            });
+
+            if (existingMetric) {
+              console.log(
+                `Métrique existante trouvée pour ligne ${routeId}, heure ${hour}, calcul ignoré`
+              );
+              continue;
+            }
+          }
+
           // Calculer les limites de cette heure
           const hourStart = new Date(targetDate);
           hourStart.setHours(hour, 0, 0, 0);

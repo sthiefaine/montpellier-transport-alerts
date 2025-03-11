@@ -1,4 +1,4 @@
-export const maxDuration = 300
+export const maxDuration = 300;
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
@@ -16,6 +16,179 @@ function validateAuth(request: Request) {
 
   const token = authHeader.substring(7);
   return token === CRON_SECRET;
+}
+
+// Fonction pour calculer les métriques quotidiennes à partir des métriques horaires
+async function calculateDailyMetricsFromHourly(
+  targetDate: Date,
+  routeId: string
+) {
+  // Début et fin de la journée
+  const startDate = new Date(
+    `${targetDate.toISOString().split("T")[0]}T00:00:00Z`
+  );
+  const endDate = new Date(
+    `${targetDate.toISOString().split("T")[0]}T23:59:59.999Z`
+  );
+
+  // Récupérer toutes les métriques horaires pour cette route et cette date
+  const hourlyMetrics = await prisma.hourlyMetric.findMany({
+    where: {
+      date: startDate,
+      routeId: routeId,
+    },
+  });
+
+  // Si aucune métrique horaire, retourner null
+  if (hourlyMetrics.length === 0) {
+    console.log(
+      `Aucune métrique horaire trouvée pour ${routeId} à la date ${
+        startDate.toISOString().split("T")[0]
+      }`
+    );
+    return null;
+  }
+
+  console.log(
+    `Trouvé ${
+      hourlyMetrics.length
+    } métriques horaires pour ${routeId} à la date ${
+      startDate.toISOString().split("T")[0]
+    }`
+  );
+
+  // Calculer les totaux et moyennes
+  let totalObservations = 0;
+  let totalDelaySum = 0;
+  let maxDelay = -Infinity;
+  let minDelay = Infinity;
+
+  // Sommes pondérées pour les taux
+  let weightedOnTimeRate60 = 0;
+  let weightedLateRate60 = 0;
+  let weightedEarlyRate60 = 0;
+  let weightedOnTimeRate30 = 0;
+  let weightedLateRate30 = 0;
+  let weightedEarlyRate30 = 0;
+  let weightedOnTimeRate120 = 0;
+  let weightedLateRate120 = 0;
+  let weightedEarlyRate120 = 0;
+
+  // Sommes pondérées pour la répartition des retards
+  let weightedDelayUnder30s = 0;
+  let weightedDelay30to60s = 0;
+  let weightedDelay60to120s = 0;
+  let weightedDelay120to300s = 0;
+  let weightedDelayOver300s = 0;
+
+  // Parcourir toutes les métriques horaires
+  for (const metric of hourlyMetrics) {
+    totalObservations += metric.observations;
+    totalDelaySum += metric.avgDelay * metric.observations;
+    maxDelay = Math.max(maxDelay, metric.maxDelay);
+    minDelay = Math.min(minDelay, metric.minDelay);
+
+    // Pondération des taux selon le nombre d'observations
+    weightedOnTimeRate60 += metric.onTimeRate60 * metric.observations;
+    weightedLateRate60 += metric.lateRate60 * metric.observations;
+    weightedEarlyRate60 += metric.earlyRate60 * metric.observations;
+    weightedOnTimeRate30 += metric.onTimeRate30 * metric.observations;
+    weightedLateRate30 += metric.lateRate30 * metric.observations;
+    weightedEarlyRate30 += metric.earlyRate30 * metric.observations;
+    weightedOnTimeRate120 += metric.onTimeRate120 * metric.observations;
+    weightedLateRate120 += metric.lateRate120 * metric.observations;
+    weightedEarlyRate120 += metric.earlyRate120 * metric.observations;
+
+    // Pondération de la répartition des retards
+    weightedDelayUnder30s += metric.delayUnder30s * metric.observations;
+    weightedDelay30to60s += metric.delay30to60s * metric.observations;
+    weightedDelay60to120s += metric.delay60to120s * metric.observations;
+    weightedDelay120to300s += metric.delay120to300s * metric.observations;
+    weightedDelayOver300s += metric.delayOver300s * metric.observations;
+  }
+
+  // Calculer les moyennes pondérées
+  const avgDelay =
+    totalObservations > 0 ? totalDelaySum / totalObservations : 0;
+
+  // Calculer les pourcentages pondérés
+  const onTimeRate60 =
+    totalObservations > 0 ? weightedOnTimeRate60 / totalObservations : 0;
+  const lateRate60 =
+    totalObservations > 0 ? weightedLateRate60 / totalObservations : 0;
+  const earlyRate60 =
+    totalObservations > 0 ? weightedEarlyRate60 / totalObservations : 0;
+  const onTimeRate30 =
+    totalObservations > 0 ? weightedOnTimeRate30 / totalObservations : 0;
+  const lateRate30 =
+    totalObservations > 0 ? weightedLateRate30 / totalObservations : 0;
+  const earlyRate30 =
+    totalObservations > 0 ? weightedEarlyRate30 / totalObservations : 0;
+  const onTimeRate120 =
+    totalObservations > 0 ? weightedOnTimeRate120 / totalObservations : 0;
+  const lateRate120 =
+    totalObservations > 0 ? weightedLateRate120 / totalObservations : 0;
+  const earlyRate120 =
+    totalObservations > 0 ? weightedEarlyRate120 / totalObservations : 0;
+
+  // Calculer la répartition des retards
+  const delayUnder30s =
+    totalObservations > 0 ? weightedDelayUnder30s / totalObservations : 0;
+  const delay30to60s =
+    totalObservations > 0 ? weightedDelay30to60s / totalObservations : 0;
+  const delay60to120s =
+    totalObservations > 0 ? weightedDelay60to120s / totalObservations : 0;
+  const delay120to300s =
+    totalObservations > 0 ? weightedDelay120to300s / totalObservations : 0;
+  const delayOver300s =
+    totalObservations > 0 ? weightedDelayOver300s / totalObservations : 0;
+
+  // Compter les trajets et arrêts uniques
+  const uniqueTrips = await prisma.realtimeDelay.groupBy({
+    by: ["tripId"],
+    where: {
+      routeId,
+      collectedAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+      status: "SCHEDULED",
+    },
+  });
+
+  const uniqueStops = await prisma.realtimeDelay.groupBy({
+    by: ["stopId"],
+    where: {
+      routeId,
+      collectedAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+      status: "SCHEDULED",
+    },
+  });
+
+  return {
+    totalTrips: uniqueTrips.length,
+    totalStops: uniqueStops.length,
+    avgDelay,
+    maxDelay,
+    minDelay,
+    onTimeRate60,
+    lateRate60,
+    earlyRate60,
+    onTimeRate30,
+    lateRate30,
+    earlyRate30,
+    onTimeRate120,
+    lateRate120,
+    earlyRate120,
+    delayUnder30s,
+    delay30to60s,
+    delay60to120s,
+    delay120to300s,
+    delayOver300s,
+  };
 }
 
 // Gérer les requêtes GET (pour les cron jobs Vercel)
@@ -41,7 +214,7 @@ export async function GET(request: Request) {
     } else {
       // Calculer pour hier par défaut
       targetDate = new Date();
-      targetDate.setDate(targetDate.getDate()-1);
+      targetDate.setDate(targetDate.getDate() - 1);
     }
 
     // Formater la date pour les comparaisons SQL
@@ -80,6 +253,64 @@ export async function GET(request: Request) {
       const routeId = routeObj.route_id;
 
       try {
+        // D'abord essayer d'utiliser les métriques horaires existantes
+        const aggregatedMetrics = await calculateDailyMetricsFromHourly(
+          targetDate,
+          routeId
+        );
+
+        if (aggregatedMetrics) {
+          console.log(
+            `Utilisation des métriques horaires agrégées pour la ligne ${routeId}`
+          );
+
+          // Supprimer toute entrée existante pour cette combinaison date/route
+          await prisma.dailyMetric.deleteMany({
+            where: {
+              date: startDate,
+              routeId,
+            },
+          });
+
+          // Insérer la nouvelle métrique
+          const result = await prisma.dailyMetric.create({
+            data: {
+              date: startDate,
+              totalTrips: aggregatedMetrics.totalTrips,
+              totalStops: aggregatedMetrics.totalStops,
+              avgDelay: aggregatedMetrics.avgDelay,
+              maxDelay: aggregatedMetrics.maxDelay,
+              minDelay: aggregatedMetrics.minDelay,
+              onTimeRate60: aggregatedMetrics.onTimeRate60,
+              lateRate60: aggregatedMetrics.lateRate60,
+              earlyRate60: aggregatedMetrics.earlyRate60,
+              onTimeRate30: aggregatedMetrics.onTimeRate30,
+              lateRate30: aggregatedMetrics.lateRate30,
+              earlyRate30: aggregatedMetrics.earlyRate30,
+              onTimeRate120: aggregatedMetrics.onTimeRate120,
+              lateRate120: aggregatedMetrics.lateRate120,
+              earlyRate120: aggregatedMetrics.earlyRate120,
+              delayUnder30s: aggregatedMetrics.delayUnder30s,
+              delay30to60s: aggregatedMetrics.delay30to60s,
+              delay60to120s: aggregatedMetrics.delay60to120s,
+              delay120to300s: aggregatedMetrics.delay120to300s,
+              delayOver300s: aggregatedMetrics.delayOver300s,
+              route: {
+                connect: {
+                  id: routeId,
+                },
+              },
+            },
+          });
+
+          results.push(result);
+          totalProcessed++;
+          console.log(`Métriques quotidiennes agrégées pour ligne ${routeId}`);
+          continue; // Passer à la ligne suivante
+        }
+
+        console.log(`Calcul direct des métriques pour la ligne ${routeId}`);
+
         // Calculer les métriques pour cette ligne avec les différents seuils
         const metrics = await prisma.$queryRaw`
           SELECT
