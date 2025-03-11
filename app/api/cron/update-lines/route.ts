@@ -28,20 +28,26 @@ export async function GET(request: NextRequest) {
 
     // Télécharger les données
     console.log("Téléchargement des fichiers JSON...");
-    const [tramResponse, busResponse] = await Promise.all([
+    const [tramResponse, busResponse, projetResponse] = await Promise.all([
       axios.get(
         "https://data.montpellier3m.fr/sites/default/files/ressources/MMM_MMM_LigneTram.json"
       ),
       axios.get(
         "https://data.montpellier3m.fr/sites/default/files/ressources/MMM_MMM_BusLigne.json"
       ),
+      axios.get(
+        "https://data.montpellier3m.fr/sites/default/files/ressources/MMM_MMM_ProjetReseauBustram.json"
+      ),
     ]);
 
     const tramData = tramResponse.data;
     const busData = busResponse.data;
+    const projetData = projetResponse.data;
 
     console.log(
-      `Données téléchargées - Tram: ${tramData.features.length} lignes, Bus: ${busData.features.length} lignes`
+      `Données téléchargées - Tram: ${tramData.features?.length || 0} lignes, Bus: ${
+        busData.features?.length || 0
+      } lignes, Projet: ${projetData.features?.length || 0} lignes`
     );
 
     // Récupérer les routes existantes pour mapper les IDs
@@ -55,7 +61,9 @@ export async function GET(request: NextRequest) {
     // Créer un mapping des shortName vers les IDs
     const routeMapping = new Map();
     routes.forEach((route) => {
-      routeMapping.set(route.shortName, route.id);
+      if (route.shortName) {
+        routeMapping.set(route.shortName, route.id);
+      }
     });
 
     console.log(
@@ -68,11 +76,14 @@ export async function GET(request: NextRequest) {
     // Traiter et insérer les données bus
     const busResults = await processBusLines(busData, routeMapping);
 
+    // Traiter et insérer les données du projet réseau
+    const projetResults = await processProjetLines(projetData, routeMapping);
+
     // Calculer les statistiques finales
-    const totalProcessed = tramResults.processed + busResults.processed;
-    const totalCreated = tramResults.created + busResults.created;
-    const totalUpdated = tramResults.updated + busResults.updated;
-    const totalSkipped = tramResults.skipped + busResults.skipped;
+    const totalProcessed = tramResults.processed + busResults.processed + projetResults.processed;
+    const totalCreated = tramResults.created + busResults.created + projetResults.created;
+    const totalUpdated = tramResults.updated + busResults.updated + projetResults.updated;
+    const totalSkipped = tramResults.skipped + busResults.skipped + projetResults.skipped;
 
     const durationSeconds = ((Date.now() - startTime) / 1000).toFixed(2);
 
@@ -93,6 +104,7 @@ export async function GET(request: NextRequest) {
           skipped: totalSkipped,
           tram: tramResults,
           bus: busResults,
+          projet: projetResults,
         },
       })
     );
@@ -109,6 +121,67 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Fonction d'extraction du numéro de ligne améliorée avec conversion de format
+function extractLineNumber(properties: any, lineType: string): string | null {
+  let rawLineNumber = null;
+  
+  // Vérifier d'abord nom_ligne qui contient le format L8
+  if (properties.nom_ligne) {
+    const nomLigneMatch = properties.nom_ligne.match(/^([LT]\d+[a-zA-Z]?)/i);
+    if (nomLigneMatch) {
+      rawLineNumber = nomLigneMatch[1].trim();
+    }
+  }
+  
+  // Utiliser codetotem si disponible et pas encore trouvé
+  if (!rawLineNumber && properties.codetotem) {
+    rawLineNumber = properties.codetotem.trim();
+  }
+  
+  // Vérifier nom_carto si pas encore trouvé
+  if (!rawLineNumber && properties.nom_carto) {
+    const nomCartoMatch = properties.nom_carto.match(/Ligne\s+(\d+[a-zA-Z]?)/i);
+    if (nomCartoMatch) {
+      rawLineNumber = nomCartoMatch[1].trim();
+    }
+  }
+  
+  // Utiliser l'id en dernier recours
+  if (!rawLineNumber && properties.id) {
+    rawLineNumber = properties.id.toString().trim();
+  }
+  
+  if (!rawLineNumber) {
+    return null;
+  }
+  
+  // Convertir au format correct pour la base de données
+  if (lineType === "tram") {
+    // Si le format est L1, L2, etc., convertir en T1, T2, etc.
+    if (rawLineNumber.toUpperCase().startsWith("L")) {
+      const convertedNumber = "T" + rawLineNumber.substring(1);
+      console.log(`Conversion tram: ${rawLineNumber} → ${convertedNumber}`);
+      return convertedNumber;
+    }
+    // Si le numéro est fourni sans préfixe, ajouter T
+    if (/^\d+$/.test(rawLineNumber)) {
+      const convertedNumber = "T" + rawLineNumber;
+      console.log(`Conversion tram: ${rawLineNumber} → ${convertedNumber}`);
+      return convertedNumber;
+    }
+  } else if (lineType === "bus") {
+    // Si le format est L44, extraire juste le numéro 44
+    if (rawLineNumber.toUpperCase().startsWith("L")) {
+      const convertedNumber = rawLineNumber.substring(1);
+      console.log(`Conversion bus: ${rawLineNumber} → ${convertedNumber}`);
+      return convertedNumber;
+    }
+  }
+  
+  // Si déjà au bon format ou format inconnu, retourner tel quel
+  return rawLineNumber;
 }
 
 // Fonction pour traiter les lignes de tram
@@ -132,11 +205,8 @@ async function processTramLines(
     processed++;
 
     try {
-      // Identifier la ligne de tram (le numéro de ligne est généralement dans nom_carto ou codetotem)
-      let lineNumber =
-        feature.properties.codetotem ||
-        feature.properties.nom_carto?.match(/Ligne\s+(\d+)/i)?.[1] ||
-        feature.properties.id?.toString();
+      // Utiliser la fonction améliorée d'extraction
+      const lineNumber = extractLineNumber(feature.properties, "tram");
 
       if (!lineNumber) {
         console.warn(
@@ -147,10 +217,6 @@ async function processTramLines(
         skipped++;
         continue;
       }
-
-      // Normaliser le numéro de ligne pour correspondre au format de shortName
-      lineNumber = lineNumber.trim();
-
 
       const routeId = routeMapping.get(lineNumber);
 
@@ -170,7 +236,6 @@ async function processTramLines(
       });
 
       if (existing) {
-    
         await prisma.lineGeometry.update({
           where: { id: existing.id },
           data: {
@@ -182,7 +247,6 @@ async function processTramLines(
         updated++;
         console.log(`Ligne de tram ${lineNumber} (ID: ${routeId}) mise à jour`);
       } else {
-
         await prisma.lineGeometry.create({
           data: {
             routeId,
@@ -227,10 +291,8 @@ async function processBusLines(
     processed++;
 
     try {
-      let lineNumber =
-        feature.properties.codetotem ||
-        feature.properties.nom_carto?.match(/Ligne\s+(\d+)/i)?.[1] ||
-        feature.properties.id?.toString();
+      // Utiliser la fonction améliorée d'extraction
+      const lineNumber = extractLineNumber(feature.properties, "bus");
 
       if (!lineNumber) {
         console.warn(
@@ -241,8 +303,6 @@ async function processBusLines(
         skipped++;
         continue;
       }
-
-      lineNumber = lineNumber.trim();
 
       const routeId = routeMapping.get(lineNumber);
 
@@ -288,6 +348,99 @@ async function processBusLines(
     } catch (error) {
       console.error(
         `Erreur lors du traitement de la ligne de bus #${processed}:`,
+        error
+      );
+      skipped++;
+    }
+  }
+
+  return { processed, created, updated, skipped };
+}
+
+// Fonction pour traiter les données du projet réseau
+async function processProjetLines(
+  projetData: any,
+  routeMapping: Map<string, string>
+) {
+  let processed = 0;
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  if (!projetData.features || !Array.isArray(projetData.features)) {
+    console.warn("Données de projet réseau invalides ou vides");
+    return { processed, created, updated, skipped };
+  }
+
+  console.log(`Traitement de ${projetData.features.length} lignes du projet réseau...`);
+
+  for (const feature of projetData.features) {
+    processed++;
+
+    try {
+      // Déterminer le type de ligne (bus ou tram)
+      let lineType = "bus";
+      if (feature.properties.mode && feature.properties.mode.toLowerCase().includes("tram")) {
+        lineType = "tram";
+      }
+
+      // Utiliser la fonction améliorée d'extraction
+      const lineNumber = extractLineNumber(feature.properties, lineType);
+
+      if (!lineNumber) {
+        console.warn(
+          `Impossible d'identifier le numéro de ligne pour une entrée projet: ${JSON.stringify(
+            feature.properties
+          )}`
+        );
+        skipped++;
+        continue;
+      }
+
+      const routeId = routeMapping.get(lineNumber);
+
+      if (!routeId) {
+        console.warn(
+          `Aucune route correspondante trouvée pour la ligne ${lineNumber} du projet`
+        );
+        skipped++;
+        continue;
+      }
+
+      const existing = await prisma.lineGeometry.findFirst({
+        where: {
+          routeId,
+          lineType: "projet",
+        },
+      });
+
+      if (existing) {
+        await prisma.lineGeometry.update({
+          where: { id: existing.id },
+          data: {
+            geometry: feature.geometry,
+            properties: feature.properties,
+            lastUpdated: new Date(),
+          },
+        });
+        updated++;
+        console.log(`Ligne projet ${lineNumber} (ID: ${routeId}) mise à jour`);
+      } else {
+        await prisma.lineGeometry.create({
+          data: {
+            routeId,
+            lineType: "projet",
+            geometry: feature.geometry,
+            properties: feature.properties,
+            lastUpdated: new Date(),
+          },
+        });
+        created++;
+        console.log(`Ligne projet ${lineNumber} (ID: ${routeId}) créée`);
+      }
+    } catch (error) {
+      console.error(
+        `Erreur lors du traitement de la ligne de projet #${processed}:`,
         error
       );
       skipped++;
