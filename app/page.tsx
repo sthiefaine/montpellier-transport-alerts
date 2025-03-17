@@ -43,21 +43,6 @@ interface DelayStats {
   on_time_exact_percentage: string;
 }
 
-interface DecimalValue {
-  d: number[]; // Tableau de digits ou [numerator, denominator]
-  e: number; // Exposant
-  s: number; // Signe (1 ou -1)
-}
-
-interface RouteDelay {
-  route_number: string;
-  route_name: string;
-  avg_delay_seconds: DecimalValue | number;
-  observations: number;
-  punctuality_percentage: number;
-  color: string;
-}
-
 async function getAlertStats(): Promise<AlertStats> {
   try {
     const response = await fetch(

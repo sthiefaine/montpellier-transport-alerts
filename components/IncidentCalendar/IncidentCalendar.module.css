@@ -10,10 +10,7 @@
   border-radius: 0.5rem;
   box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.1);
   border: 1px solid #e1e4e8;
-  margin-bottom: 1rem;
-  margin-top: 1rem;
-  margin-left: 1rem;
-  margin-right: 1rem;
+  margin: 1rem;
 }
 
 .heatmap {
