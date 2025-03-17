@@ -39,6 +39,7 @@ model Alert {
   stopIds         String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  isPosted        Boolean   @default(false)
   isComplement    Boolean   @default(false)
   parentAlertId   String?
   parentAlert     Alert?    @relation("AlertComplements", fields: [parentAlertId], references: [id])
@@ -337,4 +338,12 @@ model HourlyWeatherImpact {
 
   @@unique([hourlyMetricId, weatherId])
   @@map("hourly_weather_impacts")
+}
+
+model XSession {
+  id        Int      @id @default(autoincrement())
+  cookie    Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@map("x_sessions")
 }

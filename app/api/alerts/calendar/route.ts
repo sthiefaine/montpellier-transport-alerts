@@ -5,7 +5,7 @@ import { revalidateTag } from "next/cache";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const months = parseInt(searchParams.get("months") || "6");
+    const months = parseInt(searchParams.get("months") || "12");
     
     // Si une action de revalidation est demandée avec un secret valide
     const revalidate = searchParams.get("revalidate");

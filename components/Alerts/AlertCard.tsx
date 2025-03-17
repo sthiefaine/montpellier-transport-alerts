@@ -37,14 +37,14 @@ export default function AlertCard({ alert, compact = false }: AlertCardProps) {
 
   // Get color and details for each affected line
   const routeDetails = affectedRoutes.map((routeId) => {
-    // Remove "7-" prefix if present (format used in some transport systems)
-    const cleanId = routeId.startsWith("7-") ? routeId.substring(2) : routeId;
+
+    const cleanId = routeId.includes("-") ? routeId.substring(2) : routeId;
 
     // Try to find the line in the tram lines data
     const lineInfo = tramLinesData?.features?.find(
       (line) =>
-        line.properties.num_exploitation.toString() === cleanId ||
-        line.properties.id_lignes_sens === cleanId
+        line.properties.num_exploitation.toString() === routeId ||
+        line.properties.id_lignes_sens === routeId
     );
 
     // Determine the type of transport

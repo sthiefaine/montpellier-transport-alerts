@@ -13,19 +13,11 @@ import styles from "./AlertsContainer.module.css";
 import AlertCard from "./AlertCard";
 
 export default function AlertsContainer() {
-  // State for alerts and loading status
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [filteredAlerts, setFilteredAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // State for filters - setting defaults to 'active' and 'today'
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "completed"
-  >("active");
-  const [timeFilter, setTimeFilter] = useState<
-    "all" | "today" | "week" | "month"
-  >("today");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "upcoming">("active");
+  const [timeFilter, setTimeFilter] = useState<"all" | "today" | "yesterday" | "week" | "month">("today");
   const [routeFilter, setRouteFilter] = useState<string>("");
 
   // Fetch alerts with the current filters
@@ -41,12 +33,19 @@ export default function AlertsContainer() {
         params.append("active", "true");
       } else if (statusFilter === "completed") {
         params.append("completed", "true");
+      } else if (statusFilter === "upcoming") {
+        params.append("upcoming", "true");
+      }
+
+      if (timeFilter !== "all") {
+        params.append("timeFrame", timeFilter);
       }
 
       if (routeFilter) {
         params.append("route", routeFilter);
       }
 
+      console.log("Fetching alerts with params:", params.toString());
       const response = await fetch(`/api/alerts?${params.toString()}`);
 
       if (!response.ok) {
@@ -68,40 +67,7 @@ export default function AlertsContainer() {
   // Initial fetch of alerts
   useEffect(() => {
     fetchAlerts();
-  }, [statusFilter, routeFilter]); // Re-fetch when these filters change
-
-  // Apply time-based filtering on the client side
-  useEffect(() => {
-    if (!alerts.length) {
-      setFilteredAlerts([]);
-      return;
-    }
-
-    let filtered = [...alerts];
-    const now = new Date();
-
-    // Apply time filter
-    if (timeFilter === "today") {
-      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-      filtered = filtered.filter(
-        (alert) => new Date(alert.timeStart) >= startOfDay
-      );
-    } else if (timeFilter === "week") {
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
-      startOfWeek.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(
-        (alert) => new Date(alert.timeStart) >= startOfWeek
-      );
-    } else if (timeFilter === "month") {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      filtered = filtered.filter(
-        (alert) => new Date(alert.timeStart) >= startOfMonth
-      );
-    }
-
-    setFilteredAlerts(filtered);
-  }, [alerts, timeFilter]);
+  }, [statusFilter, timeFilter, routeFilter]); // Re-fetch when any filter changes
 
   // Handle manual refresh
   const handleRefresh = () => {
@@ -113,7 +79,7 @@ export default function AlertsContainer() {
       <div className={styles.header}>
         <h2 className={styles.sectionTitle}>
           <AlertTriangle size={20} className={styles.icon} />
-          <span>{filteredAlerts.length} alertes trouvées</span>
+          <span>{alerts.length} alertes trouvées</span>
         </h2>
 
         <button
@@ -135,12 +101,13 @@ export default function AlertsContainer() {
           <select
             value={statusFilter}
             onChange={(e) =>
-              setStatusFilter(e.target.value as "all" | "active" | "completed")
+              setStatusFilter(e.target.value as "all" | "active" | "completed" | "upcoming")
             }
             className={styles.select}
           >
             <option value="all">Toutes</option>
             <option value="active">En cours</option>
+            <option value="upcoming">À venir</option>
             <option value="completed">Terminées</option>
           </select>
         </div>
@@ -154,13 +121,14 @@ export default function AlertsContainer() {
             value={timeFilter}
             onChange={(e) =>
               setTimeFilter(
-                e.target.value as "all" | "today" | "week" | "month"
+                e.target.value as "all" | "today" | "yesterday" | "week" | "month"
               )
             }
             className={styles.select}
           >
             <option value="all">Toutes dates</option>
             <option value="today">Aujourd'hui</option>
+            <option value="yesterday">Hier</option>
             <option value="week">Cette semaine</option>
             <option value="month">Ce mois</option>
           </select>
@@ -179,13 +147,13 @@ export default function AlertsContainer() {
             Réessayer
           </button>
         </div>
-      ) : filteredAlerts.length === 0 ? (
+      ) : alerts.length === 0 ? (
         <div className={styles.noAlerts}>
           <p>Aucune alerte ne correspond à vos critères de recherche.</p>
         </div>
       ) : (
         <div className={styles.alertsList}>
-          {filteredAlerts.map((alert) => (
+          {alerts.map((alert) => (
             <AlertCard key={alert.id} alert={alert} compact={false} />
           ))}
         </div>

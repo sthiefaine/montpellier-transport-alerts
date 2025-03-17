@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     if (includeAll) {
       const effectCountsRaw = await prisma.$queryRaw`
         SELECT "effect", COUNT(*) as count 
-        FROM "Alert" 
+        FROM "alert"
         ${
           includeComplements
             ? Prisma.sql``
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     } else {
       const effectCountsRaw = await prisma.$queryRaw`
         SELECT "effect", COUNT(*) as count 
-        FROM "Alert" 
+        FROM "alerts" 
         WHERE "timeStart" <= ${now} AND ("timeEnd" >= ${now} OR "timeEnd" IS NULL)
         ${
           includeComplements
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
     if (includeAll) {
       const causeCountsRaw = await prisma.$queryRaw`
         SELECT "cause", COUNT(*) as count 
-        FROM "Alert" 
+        FROM "alerts" 
         ${
           includeComplements
             ? Prisma.sql``
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
     } else {
       const causeCountsRaw = await prisma.$queryRaw`
         SELECT "cause", COUNT(*) as count 
-        FROM "Alert" 
+        FROM "alerts" 
         WHERE "timeStart" <= ${now} AND ("timeEnd" >= ${now} OR "timeEnd" IS NULL)
         ${
           includeComplements

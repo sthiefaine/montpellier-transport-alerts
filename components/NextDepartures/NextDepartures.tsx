@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { RefreshCw, Clock, ArrowRight, Bus, MapPin, Search, X, Plus, Settings } from "lucide-react";
+import {
+  RefreshCw,
+  Clock,
+  ArrowRight,
+  Bus,
+  MapPin,
+  Search,
+  X,
+  Plus,
+  Settings,
+} from "lucide-react";
 import styles from "./NextDepartures.module.css";
 
 interface NextDepartureData {
@@ -26,6 +36,7 @@ interface NextDepartureData {
   estimatedTime: string | null;
   formattedScheduled: string | null;
   formattedEstimated: string | null;
+  isServiceEnded?: boolean; // Nouvelle propriété optionnelle
 }
 
 interface StopData {
@@ -49,49 +60,60 @@ interface NextDeparturesProps {
 }
 
 // Composant de popup pour la sélection d'arrêts
-const StopSelector = ({ 
-  isOpen, 
-  onClose, 
-  selectedStops, 
-  onStopIdsChange 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  selectedStops: StopData[]; 
+const StopSelector = ({
+  isOpen,
+  onClose,
+  selectedStops,
+  onStopIdsChange,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedStops: StopData[];
   onStopIdsChange: (stops: StopData[]) => void;
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<StopData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStopsList, setSelectedStopsList] = useState<StopData[]>(selectedStops);
-  
+  const [selectedStopsList, setSelectedStopsList] =
+    useState<StopData[]>(selectedStops);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Mettre à jour selectedStopsList quand selectedStops change
+  // Cela garantit que les arrêts initiaux sont correctement affichés
+  useEffect(() => {
+    if (selectedStops && selectedStops.length > 0) {
+      setSelectedStopsList(selectedStops);
+    }
+  }, [selectedStops]);
+
   // Focaliser l'input de recherche quand la popup s'ouvre
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       setTimeout(() => searchInputRef.current?.focus(), 100);
     }
   }, [isOpen]);
-  
+
   // Recherche d'arrêts via API
   const searchStops = async (term: string) => {
     if (term.length < 2) {
       setSearchResults([]);
       return;
     }
-    
+
     setIsSearching(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/gtfs/stops/search?q=${encodeURIComponent(term)}`);
-      
+      const response = await fetch(
+        `/api/gtfs/stops/search?q=${encodeURIComponent(term)}`
+      );
+
       if (!response.ok) {
         throw new Error(`Erreur ${response.status}`);
       }
-      
+
       const data = await response.json();
       setSearchResults(data);
     } catch (err) {
@@ -102,7 +124,7 @@ const StopSelector = ({
       setIsSearching(false);
     }
   };
-  
+
   // Recherche avec debounce
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -110,34 +132,34 @@ const StopSelector = ({
         searchStops(searchTerm);
       }
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [searchTerm]);
-  
+
   // Ajouter un arrêt à la sélection
   const addStop = (stop: StopData) => {
     // Vérifier si l'arrêt est déjà sélectionné
-    if (!selectedStopsList.some(s => s.id === stop.id)) {
+    if (!selectedStopsList.some((s) => s.id === stop.id)) {
       const newSelection = [...selectedStopsList, stop];
       setSelectedStopsList(newSelection);
     }
   };
-  
+
   // Supprimer un arrêt de la sélection
   const removeStop = (stopId: string) => {
-    const newSelection = selectedStopsList.filter(s => s.id !== stopId);
+    const newSelection = selectedStopsList.filter((s) => s.id !== stopId);
     setSelectedStopsList(newSelection);
   };
-  
+
   // Valider la sélection
   const confirmSelection = () => {
     onStopIdsChange(selectedStopsList);
     onClose();
   };
-  
+
   // Si la popup n'est pas ouverte, ne rien afficher
   if (!isOpen) return null;
-  
+
   return (
     <div className={styles.stopSelectorOverlay}>
       <div className={styles.stopSelectorModal}>
@@ -147,13 +169,13 @@ const StopSelector = ({
             <X size={16} />
           </button>
         </div>
-        
+
         <div className={styles.stopSelectorContent}>
           {/* Section de recherche */}
           <div className={styles.searchContainer}>
             <div className={styles.searchInputWrapper}>
               <Search size={16} className={styles.searchIcon} />
-              <input 
+              <input
                 ref={searchInputRef}
                 type="text"
                 value={searchTerm}
@@ -162,7 +184,7 @@ const StopSelector = ({
                 className={styles.searchInput}
               />
               {searchTerm && (
-                <button 
+                <button
                   className={styles.clearSearchButton}
                   onClick={() => setSearchTerm("")}
                 >
@@ -171,7 +193,7 @@ const StopSelector = ({
               )}
             </div>
           </div>
-          
+
           {/* Liste des arrêts sélectionnés */}
           <div className={styles.selectedStopsContainer}>
             <h4>Arrêts sélectionnés ({selectedStopsList.length})</h4>
@@ -181,14 +203,16 @@ const StopSelector = ({
               </div>
             ) : (
               <div className={styles.selectedStopsList}>
-                {selectedStopsList.map(stop => (
+                {selectedStopsList.map((stop) => (
                   <div key={stop.id} className={styles.selectedStopItem}>
                     <div className={styles.selectedStopName}>
                       <MapPin size={14} className={styles.stopIcon} />
                       {stop.name}
-                      {stop.code && <span className={styles.stopCode}> ({stop.code})</span>}
+                      {stop.code && (
+                        <span className={styles.stopCode}> ({stop.code})</span>
+                      )}
                     </div>
-                    <button 
+                    <button
                       className={styles.removeStopButton}
                       onClick={() => removeStop(stop.id)}
                     >
@@ -199,12 +223,12 @@ const StopSelector = ({
               </div>
             )}
           </div>
-          
+
           {/* Résultats de recherche */}
           {searchTerm && (
             <div className={styles.searchResultsContainer}>
               <h4>Résultats de recherche</h4>
-              
+
               {isSearching ? (
                 <div className={styles.searchingIndicator}>
                   <div className={styles.smallSpinner}></div>
@@ -218,24 +242,33 @@ const StopSelector = ({
                 </div>
               ) : (
                 <div className={styles.searchResultsList}>
-                  {searchResults.map(stop => {
-                    const isAlreadySelected = selectedStopsList.some(s => s.id === stop.id);
+                  {searchResults.map((stop) => {
+                    const isAlreadySelected = selectedStopsList.some(
+                      (s) => s.id === stop.id
+                    );
                     return (
-                      <div 
-                        key={stop.id} 
-                        className={`${styles.searchResultItem} ${isAlreadySelected ? styles.alreadySelected : ''}`}
+                      <div
+                        key={stop.id}
+                        className={`${styles.searchResultItem} ${
+                          isAlreadySelected ? styles.alreadySelected : ""
+                        }`}
                       >
                         <div className={styles.stopSearchInfo}>
                           <MapPin size={14} className={styles.stopIcon} />
                           {stop.name}
-                          {stop.code && <span className={styles.stopCode}> ({stop.code})</span>}
+                          {stop.code && (
+                            <span className={styles.stopCode}>
+                              {" "}
+                              ({stop.code})
+                            </span>
+                          )}
                         </div>
-                        <button 
+                        <button
                           className={styles.addStopButton}
                           onClick={() => addStop(stop)}
                           disabled={isAlreadySelected}
                         >
-                          {isAlreadySelected ? 'Ajouté' : <Plus size={14} />}
+                          {isAlreadySelected ? "Ajouté" : <Plus size={14} />}
                         </button>
                       </div>
                     );
@@ -245,16 +278,14 @@ const StopSelector = ({
             </div>
           )}
         </div>
-        
+
         <div className={styles.stopSelectorFooter}>
           <button className={styles.cancelButton} onClick={onClose}>
             Annuler
           </button>
-          <button 
-            className={styles.confirmButton} 
-            onClick={confirmSelection}
-          >
-            Valider ({selectedStopsList.length} arrêt{selectedStopsList.length !== 1 ? 's' : ''})
+          <button className={styles.confirmButton} onClick={confirmSelection}>
+            Valider ({selectedStopsList.length} arrêt
+            {selectedStopsList.length !== 1 ? "s" : ""})
           </button>
         </div>
       </div>
@@ -267,7 +298,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   initialStopIds,
   routeId,
   directionId,
-  limit = 10,
+  limit = 20,
   refreshInterval = 60000,
   showTitle = true,
   displayMode = "auto",
@@ -285,7 +316,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   const [stopIds, setStopIds] = useState<string[]>(getInitialStopIds());
   const [stopDetails, setStopDetails] = useState<StopData[]>([]);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-  
+
   const [departures, setDepartures] = useState<NextDepartureData[]>([]);
   const [countdowns, setCountdowns] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -306,32 +337,38 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   }, [stopId, initialStopIds]);
 
   // Récupérer les détails des arrêts
+  const fetchStopDetails = async () => {
+    if (stopIds.length === 0) {
+      setStopDetails([]);
+      return;
+    }
+
+    try {
+      const queries = stopIds
+        .map((id) => `id=${encodeURIComponent(id)}`)
+        .join("&");
+      const response = await fetch(`/api/gtfs/stops/details?${queries}`);
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}`);
+      }
+
+      const data = await response.json();
+      setStopDetails(data);
+    } catch (err) {
+      console.error(
+        "Erreur lors de la récupération des détails d'arrêts:",
+        err
+      );
+      // Ne pas modifier les détails existants en cas d'erreur
+    }
+  };
+
+  // Charger les détails des arrêts quand stopIds change
   useEffect(() => {
-    const fetchStopDetails = async () => {
-      if (stopIds.length === 0) {
-        setStopDetails([]);
-        return;
-      }
-      
-      try {
-        const queries = stopIds.map(id => `id=${encodeURIComponent(id)}`).join('&');
-        const response = await fetch(`/api/gtfs/stops/details?${queries}`);
-        
-        if (!response.ok) {
-          throw new Error(`Erreur ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setStopDetails(data);
-      } catch (err) {
-        console.error("Erreur lors de la récupération des détails d'arrêts:", err);
-        // Ne pas modifier les détails existants en cas d'erreur
-      }
-    };
-    
     fetchStopDetails();
   }, [stopIds]);
-  
+
   // Mettre à jour le parent si le callback existe
   useEffect(() => {
     if (onStopIdsChange) {
@@ -361,20 +398,28 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     }
   }, [displayMode]);
 
+  // Fonction pour ouvrir le sélecteur d'arrêts
+  // S'assure que les détails des arrêts sont chargés avant ouverture
+  const handleOpenSelector = () => {
+    fetchStopDetails().then(() => {
+      setIsSelectorOpen(true);
+    });
+  };
+
   const fetchDepartures = async () => {
     if (stopIds.length === 0) {
       setDepartures([]);
       setLoading(false);
       return;
     }
-    
+
     try {
       setLoading(true);
 
       let url = "/api/gtfs/departures/next?limit=" + limit;
 
       // Ajouter les stopIds à l'URL
-      stopIds.forEach(id => {
+      stopIds.forEach((id) => {
         url += "&stopId=" + encodeURIComponent(id);
       });
 
@@ -383,6 +428,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
       if (directionId !== undefined && directionId !== null)
         url += "&directionId=" + directionId;
 
+      console.log("Requête API:", url);
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -390,23 +436,95 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
       }
 
       const data = await response.json();
+      console.log("Départs reçus de l'API:", data.length, data);
 
       // Ajuster les heures en fonction du fuseau horaire local
       const adjustedData = data.map((departure: NextDepartureData) => {
         return {
           ...departure,
           formattedScheduled: departure.scheduledTime
-            ? new Date(departure.scheduledTime).toLocaleTimeString("fr-FR")
+            ? new Date(departure.scheduledTime).toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : null,
           formattedEstimated: departure.estimatedTime
-            ? new Date(departure.estimatedTime).toLocaleTimeString("fr-FR")
+            ? new Date(departure.estimatedTime).toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : null,
         };
       });
 
+      console.log("Départs après formatage:", adjustedData.length);
+
       // Extraire les noms d'arrêts uniques
-      const uniqueStopNames = [...new Set<string>(adjustedData.map((d: NextDepartureData) => d.stop.name))];
+      const uniqueStopNames = [
+        ...new Set<string>(
+          adjustedData.map((d: NextDepartureData) => d.stop.name)
+        ),
+      ];
       setStopNames(uniqueStopNames);
+
+      // Si nous avons moins de départs que demandé, compléter avec des départs "terminés"
+      const expectedCount = limit;
+      const actualCount = adjustedData.length;
+
+      console.log(`Départs actuels: ${actualCount}/${expectedCount}`);
+
+      if (actualCount < expectedCount) {
+        // Créer un template basé sur le dernier départ s'il existe, sinon en créer un par défaut
+        const template =
+          actualCount > 0
+            ? { ...adjustedData[actualCount - 1] }
+            : {
+                tripId: "service-termine",
+                line: {
+                  id: "end",
+                  number: "--",
+                  name: "Service terminé",
+                  color: "#999999",
+                },
+                stop:
+                  uniqueStopNames.length > 0
+                    ? { id: "end", name: uniqueStopNames[0], code: null }
+                    : { id: "end", name: "Tous les arrêts", code: null },
+                direction: {
+                  id: null,
+                  headsign: "Service terminé pour aujourd'hui",
+                },
+                delay: 0,
+                scheduledTime: null,
+                estimatedTime: null,
+                formattedScheduled: null,
+                formattedEstimated: null,
+                isServiceEnded: true, // Propriété spéciale pour les départs "terminés"
+              };
+
+        // Ajouter des départs "terminés" pour atteindre le nombre demandé
+        for (let i = actualCount; i < expectedCount; i++) {
+          // Pour chaque départ "terminé", créer une copie du template avec un ID unique
+          const serviceEndedDeparture = {
+            ...template,
+            tripId: `service-termine-${i}`,
+            isServiceEnded: true,
+          };
+
+          // Si nous avons plusieurs arrêts, alterner entre eux
+          if (uniqueStopNames.length > 1 && template.stop) {
+            const stopIndex = i % uniqueStopNames.length;
+            serviceEndedDeparture.stop = {
+              ...template.stop,
+              name: uniqueStopNames[stopIndex],
+            };
+          }
+
+          adjustedData.push(serviceEndedDeparture);
+        }
+
+        console.log(`Départs après complétion: ${adjustedData.length}`);
+      }
 
       setDepartures(adjustedData);
       setLastUpdated(new Date());
@@ -419,62 +537,98 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     }
   };
 
-  // Fonction pour calculer et formater le temps restant
-  const calculateCountdown = useCallback((estimatedTime: string | null): string => {
-    if (!estimatedTime) return "--:--";
-    
-    const now = new Date();
-    const estimated = new Date(estimatedTime);
-    const diffMs = estimated.getTime() - now.getTime();
-    
-    // Si le départ est passé, afficher +xx:xx pour indiquer le temps écoulé depuis le départ
-    if (diffMs < 0) {
-      const elapsedMs = Math.abs(diffMs);
-      const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
-      const minutes = Math.floor((elapsedMs % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((elapsedMs % (1000 * 60)) / 1000);
-      
-      // Format +hh:mm:ss ou +mm:ss
-      if (hours > 0) {
-        return `+${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      } else {
-        return `+${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  // Dé-duplication des départs avant le rendu
+  const uniqueDepartures = React.useMemo(() => {
+    // Utiliser un Map pour éliminer les doublons
+    const uniqueMap = new Map();
+    console.log("Départs à dédupliquer:", departures.length);
+
+    departures.forEach((departure, index) => {
+      // Créer une clé qui inclut tripId ET stop.id pour permettre d'afficher
+      // le même trajet à différents arrêts
+      const key = departure.isServiceEnded
+        ? `service-${index}` // Cas spécial pour les départs "service terminé"
+        : `${departure.tripId}-${departure.stop.id}`; // Identifiant unique de trajet + arrêt
+
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, { ...departure, _index: index });
       }
-    }
-    
-    // Calculer heures, minutes, secondes pour le temps restant
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-    
-    // Format (hh:)mm:ss - heures seulement si > 0
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-  }, []);
+    });
+
+    const result = Array.from(uniqueMap.values());
+    console.log("Départs après déduplication:", result.length);
+    return result;
+  }, [departures]);
+
+  // Fonction pour calculer et formater le temps restant
+  const calculateCountdown = useCallback(
+    (estimatedTime: string | null): string => {
+      if (!estimatedTime) return "--:--";
+
+      const now = new Date();
+      const estimated = new Date(estimatedTime);
+      const diffMs = estimated.getTime() - now.getTime();
+
+      // Si le départ est passé, afficher +xx:xx pour indiquer le temps écoulé depuis le départ
+      if (diffMs < 0) {
+        const elapsedMs = Math.abs(diffMs);
+        const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
+        const minutes = Math.floor(
+          (elapsedMs % (1000 * 60 * 60)) / (1000 * 60)
+        );
+        const seconds = Math.floor((elapsedMs % (1000 * 60)) / 1000);
+
+        // Format +hh:mm:ss ou +mm:ss
+        if (hours > 0) {
+          return `+${hours.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+        } else {
+          return `+${minutes.toString().padStart(2, "0")}:${seconds
+            .toString()
+            .padStart(2, "0")}`;
+        }
+      }
+
+      // Calculer heures, minutes, secondes pour le temps restant
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+      // Format (hh:)mm:ss - heures seulement si > 0
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      } else {
+        return `${minutes.toString().padStart(2, "0")}:${seconds
+          .toString()
+          .padStart(2, "0")}`;
+      }
+    },
+    []
+  );
 
   // Mettre à jour tous les comptes à rebours chaque seconde
   useEffect(() => {
     // Fonction pour mettre à jour tous les comptes à rebours
     const updateAllCountdowns = () => {
       const newCountdowns: Record<string, string> = {};
-      
+
       departures.forEach((departure) => {
         const key = `${departure.tripId}-${departure.stop.id}-${departure.line.id}`;
         newCountdowns[key] = calculateCountdown(departure.estimatedTime);
       });
-      
+
       setCountdowns(newCountdowns);
     };
-    
+
     // Mettre à jour immédiatement
     updateAllCountdowns();
-    
+
     // Puis mettre à jour toutes les secondes
     const intervalId = setInterval(updateAllCountdowns, 1000);
-    
+
     // Nettoyer l'intervalle à la fin
     return () => clearInterval(intervalId);
   }, [departures, calculateCountdown]);
@@ -529,36 +683,41 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
     return `${departure.tripId}-${departure.stop.id}-${departure.line.id}`;
   };
 
-  // Dé-duplication des départs avant le rendu
-  const uniqueDepartures = React.useMemo(() => {
-    // Utiliser un Map pour éliminer les doublons
-    const uniqueMap = new Map();
-
-    departures.forEach((departure, index) => {
-      // Créer une clé basée sur les données pertinentes
-      const key = `${departure.tripId}-${departure.stop.id}-${departure.line.id}-${departure.formattedEstimated}`;
-
-      // Ne garder que la première occurrence
-      if (!uniqueMap.has(key)) {
-        uniqueMap.set(key, { ...departure, _index: index });
-      }
-    });
-
-    // Convertir le Map en tableau
-    return Array.from(uniqueMap.values());
-  }, [departures]);
-
   // Génère une clé unique garantie pour chaque départ
   const generateUniqueKey = (departure: any, index: number) => {
     // Utiliser l'index original et un index secondaire pour garantir l'unicité absolue
     return `idx-${departure._index}-${index}`;
   };
-  
+
   // Gérer les modifications de la sélection d'arrêts
   const handleStopSelection = (selectedStops: StopData[]) => {
-    const newStopIds = selectedStops.map(stop => stop.id);
+    const newStopIds = selectedStops.map((stop) => stop.id);
     setStopIds(newStopIds);
   };
+
+  // Fonction pour déterminer la classe CSS basée sur le compte à rebours
+  function getCountdownClass(countdown: string | undefined): string {
+    if (!countdown) return "";
+
+    // Si c'est un départ passé (format +xx:xx)
+    if (countdown.startsWith("+")) return styles.late;
+
+    // Si le format est HH:MM:SS ou MM:SS
+    const parts = countdown.split(":");
+    let minutes = 0;
+
+    if (parts.length === 3) {
+      // format HH:MM:SS
+      minutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    } else if (parts.length === 2) {
+      // format MM:SS
+      minutes = parseInt(parts[0]);
+    }
+
+    if (minutes <= 2) return styles.late;
+    if (minutes <= 5) return styles.early;
+    return styles.onTime;
+  }
 
   // Rendu du tableau pour desktop
   const renderTable = () => (
@@ -568,7 +727,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
           <tr>
             <th>Ligne</th>
             {/* Toujours afficher l'arrêt quand on a plusieurs stopId */}
-            {(stopIds.length !== 1) && <th>Arrêt</th>}
+            {stopIds.length !== 1 && <th>Arrêt</th>}
             <th>Direction</th>
             <th>Retard</th>
             <th>ETA</th>
@@ -576,7 +735,10 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
         </thead>
         <tbody>
           {uniqueDepartures.map((departure, index) => (
-            <tr key={generateUniqueKey(departure, index)}>
+            <tr
+              key={generateUniqueKey(departure, index)}
+              className={departure.isServiceEnded ? styles.serviceEnded : ""}
+            >
               <td className={styles.lineColumn}>
                 <div
                   className={styles.lineNumber}
@@ -588,7 +750,7 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
                   {departure.line.number}
                 </div>
               </td>
-              {(stopIds.length !== 1) && (
+              {stopIds.length !== 1 && (
                 <td className={styles.stopColumn}>{departure.stop.name}</td>
               )}
               <td
@@ -598,14 +760,25 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
                 {truncateText(departure.direction.headsign, 20)}
               </td>
               <td
-                className={`${styles.delayColumn} ${getDelayClass(
-                  departure.delay
-                )}`}
+                className={`${styles.delayColumn} ${
+                  departure.isServiceEnded ? "" : getDelayClass(departure.delay)
+                }`}
               >
-                {formatDelay(departure.delay)}
+                {departure.isServiceEnded ? "" : formatDelay(departure.delay)}
               </td>
-              <td className={`${styles.timeColumn} ${getCountdownClass(countdowns[getCountdownKey(departure, index)])}`}>
-                {countdowns[getCountdownKey(departure, index)] || calculateCountdown(departure.estimatedTime)}
+              <td
+                className={`${styles.timeColumn} ${
+                  departure.isServiceEnded
+                    ? styles.serviceEnded
+                    : getCountdownClass(
+                        countdowns[getCountdownKey(departure, index)]
+                      )
+                }`}
+              >
+                {departure.isServiceEnded
+                  ? "Service terminé"
+                  : countdowns[getCountdownKey(departure, index)] ||
+                    calculateCountdown(departure.estimatedTime)}
               </td>
             </tr>
           ))}
@@ -613,30 +786,6 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
       </table>
     </div>
   );
-  
-  // Fonction pour déterminer la classe CSS basée sur le compte à rebours
-  function getCountdownClass(countdown: string | undefined): string {
-    if (!countdown) return "";
-    
-    // Si c'est un départ passé (format +xx:xx)
-    if (countdown.startsWith('+')) return styles.late;
-    
-    // Si le format est HH:MM:SS ou MM:SS
-    const parts = countdown.split(':');
-    let minutes = 0;
-    
-    if (parts.length === 3) {
-      // format HH:MM:SS
-      minutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-    } else if (parts.length === 2) {
-      // format MM:SS
-      minutes = parseInt(parts[0]);
-    }
-    
-    if (minutes <= 2) return styles.late;
-    if (minutes <= 5) return styles.early;
-    return styles.onTime;
-  }
 
   // Rendu des cartes pour mobile
   const renderCards = () => (
@@ -644,7 +793,9 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
       {uniqueDepartures.map((departure, index) => (
         <div
           key={generateUniqueKey(departure, index)}
-          className={styles.departureCard}
+          className={`${styles.departureCard} ${
+            departure.isServiceEnded ? styles.serviceEndedCard : ""
+          }`}
         >
           <div className={styles.cardHeader}>
             <div
@@ -658,14 +809,36 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
             </div>
 
             <div className={styles.cardTimeInfo}>
-              <div className={`${styles.estimatedTime} ${getCountdownClass(countdowns[getCountdownKey(departure, index)])}`}>
-                {countdowns[getCountdownKey(departure, index)] || calculateCountdown(departure.estimatedTime)}
-              </div>
+              {!departure.isServiceEnded && (
+                <div
+                  className={`${styles.cardDelay} ${getDelayClass(
+                    departure.delay
+                  )}`}
+                >
+                  {formatDelay(departure.delay)}
+                </div>
+              )}
+              {departure.isServiceEnded ? (
+                <div
+                  className={`${styles.estimatedTime} ${styles.serviceEnded}`}
+                >
+                  Service terminé
+                </div>
+              ) : (
+                <div
+                  className={`${styles.estimatedTime} ${getCountdownClass(
+                    countdowns[getCountdownKey(departure, index)]
+                  )}`}
+                >
+                  {countdowns[getCountdownKey(departure, index)] ||
+                    calculateCountdown(departure.estimatedTime)}
+                </div>
+              )}
             </div>
           </div>
 
           <div className={styles.cardDetails}>
-            {(stopIds.length !== 1) && (
+            {stopIds.length !== 1 && (
               <div className={styles.cardStop}>
                 <MapPin size={14} className={styles.cardIcon} />
                 {departure.stop.name}
@@ -674,15 +847,10 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
 
             <div className={styles.cardDirection}>
               <Bus size={14} className={styles.cardIcon} />
-              {departure.direction.headsign}
-            </div>
-
-            <div
-              className={`${styles.cardDelay} ${getDelayClass(
-                departure.delay
-              )}`}
-            >
-              {formatDelay(departure.delay)}
+              {truncateText(
+                departure.direction.headsign,
+                departure.isServiceEnded ? 30 : 25
+              )}
             </div>
           </div>
         </div>
@@ -694,15 +862,17 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
   const renderStopNames = () => {
     // Si aucun nom d'arrêt, retourner une chaîne vide
     if (stopNames.length === 0) return "";
-    
+
     // Si un seul arrêt, afficher son nom
     if (stopNames.length === 1) return `Arrêt: ${stopNames[0]}`;
-    
+
     // Si 2 ou 3 arrêts, les afficher tous
     if (stopNames.length <= 3) return `Arrêts: ${stopNames.join(", ")}`;
-    
+
     // Si plus de 3 arrêts, montrer les 2 premiers et le nombre total
-    return `Arrêts: ${stopNames[0]}, ${stopNames[1]} et ${stopNames.length - 2} autres`;
+    return `Arrêts: ${stopNames[0]}, ${stopNames[1]} et ${
+      stopNames.length - 2
+    } autres`;
   };
 
   return (
@@ -713,15 +883,13 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
             <h3 className={styles.title}>
               Prochains départs
               {stopIds.length > 0 && departures.length > 0 && (
-                <span className={styles.subtitle}>
-                  {renderStopNames()}
-                </span>
+                <span className={styles.subtitle}>{renderStopNames()}</span>
               )}
             </h3>
             {enableStopSelector && (
-              <button 
+              <button
                 className={styles.selectStopsButton}
-                onClick={() => setIsSelectorOpen(true)}
+                onClick={handleOpenSelector}
                 title="Sélectionner des arrêts"
               >
                 <Settings size={16} />
@@ -760,9 +928,9 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
         <div className={styles.noStopsSelected}>
           <p>Aucun arrêt sélectionné</p>
           {enableStopSelector && (
-            <button 
+            <button
               className={styles.selectFirstStopButton}
-              onClick={() => setIsSelectorOpen(true)}
+              onClick={handleOpenSelector}
             >
               Sélectionner des arrêts
             </button>
@@ -789,10 +957,10 @@ const NextDepartures: React.FC<NextDeparturesProps> = ({
           )}
         </>
       )}
-      
+
       {/* Popup de sélection d'arrêts */}
       {enableStopSelector && (
-        <StopSelector 
+        <StopSelector
           isOpen={isSelectorOpen}
           onClose={() => setIsSelectorOpen(false)}
           selectedStops={stopDetails}

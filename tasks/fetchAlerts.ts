@@ -21,7 +21,7 @@ function isComplement(headerText: string, descriptionText: string) {
     header.includes("complément") ||
     description.includes("complément d'info") ||
     description.includes("complément d'information") ||
-    description.startsWith("complément") || description.includes("fin alerte")
+    description.startsWith("complément") || description.includes("fin")
   );
 }
 
@@ -107,6 +107,7 @@ async function saveAlerts(feedMessage: any): Promise<void> {
     );
 
     revalidatePath('/');
+    revalidatePath('/alertes');
   } catch (error) {
     console.error("Erreur lors de la sauvegarde des alertes:", error);
     throw error;
@@ -177,7 +178,7 @@ async function processAlert(entity: any): Promise<void> {
   });
 }
 
-async function processComplement(entity: any): Promise<void> {
+async function processComplement(entity: { alert: any; id: any; }): Promise<void> {
   const alert = entity.alert;
 
   const headerText = alert.headerText?.translation?.[0]?.text || "";

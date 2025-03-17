@@ -4,8 +4,7 @@ import axios from "axios";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // 5 minutes maximum
-
+export const maxDuration = 300;
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
@@ -123,7 +122,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Fonction d'extraction du numéro de ligne améliorée avec conversion de format
 function extractLineNumber(properties: any, lineType: string): string | null {
   let rawLineNumber = null;
   
@@ -174,9 +172,15 @@ function extractLineNumber(properties: any, lineType: string): string | null {
   } else if (lineType === "bus") {
     // Si le format est L44, extraire juste le numéro 44
     if (rawLineNumber.toUpperCase().startsWith("L")) {
-      const convertedNumber = rawLineNumber.substring(1);
-      console.log(`Conversion bus: ${rawLineNumber} → ${convertedNumber}`);
-      return convertedNumber;
+      rawLineNumber = rawLineNumber.substring(1);
+      console.log(`Extraction numéro bus: L${rawLineNumber} → ${rawLineNumber}`);
+    }
+    
+    // Ajouter un padding zéro pour les numéros de 1 à 9
+    if (/^[1-9]$/.test(rawLineNumber)) {
+      const paddedNumber = "0" + rawLineNumber;
+      console.log(`Padding numéro bus: ${rawLineNumber} → ${paddedNumber}`);
+      return paddedNumber;
     }
   }
   

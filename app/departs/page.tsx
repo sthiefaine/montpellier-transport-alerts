@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import NextDepartures from "@/components/NextDepartures/NextDepartures";
 import { Loader2 } from "lucide-react";
 import DeparturesFinder from "@/components/DeparturesFinder/DeparturesFinder";
 

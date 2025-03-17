@@ -1,385 +1,351 @@
 "use client";
-
-import { useState, useEffect, useRef } from "react";
-import { InfoIcon, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./IncidentCalendar.module.css";
+import { isToday } from "@/lib/utils";
 
-type CalendarData = {
+interface IncidentData {
   [date: string]: number;
-};
-
-type TooltipInfo = {
-  date: string;
-  count: number;
-  x: number;
-  y: number;
-  visible: boolean;
-};
-
-interface IncidentCalendarClientProps {
-  calendarData: CalendarData;
-  fixedMonths?: number;
 }
 
-// Format une date au format YYYY-MM-DD
-const formatDate = (date: Date): string => {
-  return date.toISOString().split("T")[0];
-};
+// Interface pour les messages d'erreur par niveau
+interface ErrorLabels {
+  [level: number]: string;
+}
 
-// Format une date au format lisible en français
-const formatReadableDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
+// Nouvelle interface pour les jours structurés
+interface DayItem {
+  date: Date;
+  dateStr: string;
+  isFirstOfMonth: boolean;
+  isFirstMondayOfMonth: boolean;
+  incidentLevel: number;
+  monthName: string;
+}
+
+// Structure pour organiser les jours par semaines
+interface WeekDays {
+  weekIndex: number;
+  days: DayItem[];
+}
+
+interface IncidentCalendarProps {
+  data?: IncidentData;
+  year?: number;
+  colorScale?: string[];
+  emptyColor?: string;
+  errorLabels?: ErrorLabels;
+}
+
+const formatTooltipDate = (date: Date): string => {
   return date.toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
+    day: "2-digit",
     month: "long",
     year: "numeric",
   });
 };
 
-// Détermine la couleur en fonction du nombre d'incidents
-const getColor = (count: number, maxCount: number): string => {
-  if (count === 0) return "#f1f5f9";
+// Palette de couleurs avec dégradé jaune-orange-rouge-noir
+const defaultColorScale = [
+  "#ebedf0", // Gris clair pour aucun incident
+  "#fff9c4", // Jaune très pâle
+  "#fff59d", // Jaune pâle
+  "#ffee58", // Jaune
+  "#ffca28", // Jaune doré
+  "#ffa726", // Orange clair
+  "#fb8c00", // Orange
+  "#f57c00", // Orange foncé
+  "#ff8a80", // Rouge-orange
+  "#ff5252", // Rouge
+  "#e53935", // Rouge vif
+  "#c62828", // Rouge foncé
+  "#8b0000", // Rouge sang
+  "#4a0000", // Rouge très foncé
+  "#000000"  // Noir
+];
 
-  const colors = ["#fee2e2", "#fecaca", "#fca5a5", "#ef4444", "#dc2626"];
-
-  const index = Math.min(
-    Math.floor((count / maxCount) * colors.length),
-    colors.length - 1
-  );
-  return colors[index];
-};
-
-// Obtient le nom du mois abrégé
-const getMonthName = (month: number): string => {
-  const months = [
-    "Jan",
-    "Fév",
-    "Mar",
-    "Avr",
-    "Mai",
-    "Juin",
-    "Juil",
-    "Août",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Déc",
-  ];
-  return months[month];
-};
-
-export default function IncidentCalendarClient({
-  calendarData,
-  fixedMonths = 13, // Changé de 9 à 13 mois
-}: IncidentCalendarClientProps) {
-  const calendarRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const [maxCount, setMaxCount] = useState<number>(5);
-  const [tooltip, setTooltip] = useState<TooltipInfo>({
-    date: "",
-    count: 0,
-    x: 0,
-    y: 0,
-    visible: false,
-  });
-  const [showLegend, setShowLegend] = useState<boolean>(false);
-  const [startDate, setStartDate] = useState<Date>(() => {
-    const date = new Date();
-    date.setDate(1);
-    date.setMonth(date.getMonth() - 6); // 6 mois avant le mois courant
-    return date;
+const IncidentCalendarClient = ({
+  data = {},
+  year = new Date().getFullYear(),
+  colorScale = defaultColorScale,
+  emptyColor = "#ebedf0",
+  errorLabels = {},
+}: IncidentCalendarProps) => {
+  const [calendarDays, setCalendarDays] = useState<WeekDays[]>([]);
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    date: string;
+    incident: string;
+    level: number;
+  }>({
+    visible: true,
+    date: formatTooltipDate(new Date()),
+    incident: "",
+    level: 0,
   });
 
-  // Nombre de semaines à afficher
-  const weeksToShow = Math.round(fixedMonths * 4.33) + 1;
+  const todayRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
-  // Calculer la valeur maximale pour la colorisation
+  // Effet pour scroller vers la date du jour après le rendu
   useEffect(() => {
-    if (Object.keys(calendarData).length) {
-      const values = Object.values(calendarData);
-      const max = values.length > 0 ? Math.max(...values) : 5;
-      setMaxCount(max > 0 ? max : 5);
-    }
-  }, [calendarData]);
+    if (todayRef.current && gridRef.current) {
+      // Calcul du scroll pour centrer la date d'aujourd'hui
+      const todayElement = todayRef.current;
+      const gridElement = gridRef.current;
 
-  // Centrer automatiquement sur le mois courant lors du chargement initial
+      // Position du jour courant par rapport au début de la grille
+      const todayRect = todayElement.getBoundingClientRect();
+      const gridRect = gridElement.getBoundingClientRect();
+
+      // Calculer la position de scroll pour centrer le jour courant
+      const scrollPosition =
+        todayElement.offsetLeft - gridRect.width / 2 + todayRect.width / 2;
+
+      // Scroller avec une petite animation
+      gridElement.scrollTo({
+        left: scrollPosition > 0 ? scrollPosition : 0,
+        behavior: "smooth",
+      });
+    }
+    setTooltip({
+      visible: true,
+      date: formatTooltipDate(new Date()),
+      incident: "",
+      level: data[formatDate(new Date())] || 0,
+    });
+  }, [calendarDays]);
+
   useEffect(() => {
-    if (wrapperRef.current) {
-      // Trouver la position approximative du mois courant (au milieu)
-      const centerWeek = Math.round(weeksToShow / 2);
-      const centerPosition = centerWeek * 14; // 14px par colonne
-      
-      // Ajuster pour centrer dans la fenêtre
-      const halfViewportWidth = wrapperRef.current.clientWidth / 2;
-      wrapperRef.current.scrollLeft = centerPosition - halfViewportWidth;
-    }
-  }, [weeksToShow]);
+    // Générer toutes les dates structurées pour l'année
+    const generateStructuredDates = () => {
+      const firstDay = new Date(year, 0, 1);
+      const lastDay = new Date(year, 11, 31);
 
-  // Naviguer vers la période précédente
-  const navigateBack = () => {
-    const newDate = new Date(startDate);
-    newDate.setMonth(newDate.getMonth() - 3);
-    setStartDate(newDate);
-  };
-
-  // Naviguer vers la période suivante
-  const navigateForward = () => {
-    const newDate = new Date(startDate);
-    newDate.setMonth(newDate.getMonth() + 3);
-
-    // Ne pas aller au-delà de la date actuelle moins le nombre de mois fixes
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() - fixedMonths + 3);
-    maxDate.setDate(1);
-
-    if (newDate <= maxDate) {
-      setStartDate(newDate);
-    }
-  };
-
-  // Naviguer vers aujourd'hui
-  const navigateToday = () => {
-    const today = new Date();
-    today.setDate(1);
-    today.setMonth(today.getMonth() - 6); // Le mois courant sera au milieu
-    setStartDate(today);
-
-    // Faire défiler vers la position appropriée
-    setTimeout(() => {
-      if (wrapperRef.current) {
-        // Centrer le mois courant dans la vue
-        const centerWeek = Math.round(weeksToShow / 2);
-        const centerPosition = centerWeek * 14; // 14px par colonne
-        
-        // Ajuster pour centrer dans la fenêtre
-        const halfViewportWidth = wrapperRef.current.clientWidth / 2;
-        wrapperRef.current.scrollLeft = centerPosition - halfViewportWidth;
+      // Ajuster le premier jour pour qu'il commence au début de la semaine (lundi)
+      const firstDayOfWeek = firstDay.getDay();
+      const adjustedFirstDay = new Date(firstDay);
+      if (firstDayOfWeek === 0) {
+        // Dimanche
+        adjustedFirstDay.setDate(adjustedFirstDay.getDate() - 6);
+      } else {
+        adjustedFirstDay.setDate(
+          adjustedFirstDay.getDate() - (firstDayOfWeek - 1)
+        );
       }
-    }, 10);
-  };
 
-  // Vérifier si la période actuelle est visible
-  const isCurrentPeriodVisible = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+      // Ajuster le dernier jour pour qu'il aille jusqu'à la fin de la semaine
+      const lastDayOfWeek = lastDay.getDay();
+      const adjustedLastDay = new Date(lastDay);
+      if (lastDayOfWeek !== 0) {
+        // Si ce n'est pas un dimanche
+        adjustedLastDay.setDate(
+          adjustedLastDay.getDate() + (7 - lastDayOfWeek)
+        );
+      }
 
-    const visibleEndDate = new Date(startDate);
-    visibleEndDate.setMonth(visibleEndDate.getMonth() + fixedMonths - 1);
+      // Générer toutes les semaines avec des jours structurés
+      const result: WeekDays[] = [];
+      let currentWeek: DayItem[] = [];
+      let weekIndex = 0;
 
-    return (
-      (visibleEndDate.getMonth() >= currentMonth &&
-        visibleEndDate.getFullYear() === currentYear) ||
-      visibleEndDate.getFullYear() > currentYear
-    );
-  };
+      let currentDate = new Date(adjustedFirstDay);
 
-  // Générer le calendrier
-  const generateCalendar = () => {
-    const calendarStartDate = new Date(startDate);
-
-    // Ajuster pour commencer au premier jour de la semaine (dimanche)
-    const firstDayOfWeek = calendarStartDate.getDay();
-    calendarStartDate.setDate(calendarStartDate.getDate() - firstDayOfWeek);
-
-    // Variables pour le suivi des mois
-    const monthLabels = [];
-    let currentMonth = -1; // Initialiser à une valeur qui ne correspond à aucun mois
-
-    // Constante pour la largeur d'une colonne (cellule + marges)
-    const COLUMN_WIDTH = 14; // 0.75rem (cellule) + 0.25rem (marges) = ~14px
-
-    // Créer les colonnes de jours
-    const weeks = [];
-
-    // Ajouter l'en-tête des jours de la semaine
-    const dayHeaders = (
-      <div key="dayheaders" className={styles.weekColumn}>
-        {["D", "L", "M", "M", "J", "V", "S"].map((day, idx) => (
-          <div key={`dayheader-${idx}`} className={styles.dayLabel}>
-            {day}
-          </div>
-        ))}
-      </div>
-    );
-
-    weeks.push(dayHeaders);
-
-    // Créer les colonnes de semaines
-    let currentDate = new Date(calendarStartDate);
-    for (let week = 0; week < weeksToShow; week++) {
-      const days = [];
-
-      // Vérifier si un nouveau mois commence dans cette semaine
-      for (let day = 0; day < 7; day++) {
-        // Si premier jour du mois et changement de mois, ajouter un label de mois
-        if (
-          currentDate.getDate() === 1 &&
-          currentDate.getMonth() !== currentMonth
-        ) {
-          currentMonth = currentDate.getMonth();
-          monthLabels.push({
-            month: getMonthName(currentMonth),
-            position: week + day / 7, // Position plus précise en tenant compte du jour
+      while (currentDate <= adjustedLastDay) {
+        if (currentWeek.length === 7) {
+          result.push({
+            weekIndex: weekIndex++,
+            days: currentWeek,
           });
+          currentWeek = [];
         }
 
-        const dateString = formatDate(currentDate);
-        const count = calendarData[dateString] || 0;
-        const color = getColor(count, maxCount);
-        const isToday = dateString === formatDate(new Date());
+        const dateStr = formatDate(currentDate);
+        const isFirstOfMonth = currentDate.getDate() === 1;
+        const isFirstMondayOfMonth =
+          currentDate.getDay() === 1 && currentDate.getDate() <= 7;
 
-        days.push(
-          <div
-            key={`${week}-${day}`}
-            className={`${styles.dayCell} ${isToday ? styles.todayCell : ""}`}
-            style={{ backgroundColor: color }}
-            onMouseEnter={(e) => {
-              if (calendarRef.current) {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const calendarRect = calendarRef.current.getBoundingClientRect();
+        currentWeek.push({
+          date: new Date(currentDate),
+          dateStr,
+          isFirstOfMonth,
+          isFirstMondayOfMonth,
+          incidentLevel: data[dateStr] || 0,
+          monthName: getMonthName(currentDate),
+        });
 
-                setTooltip({
-                  date: dateString,
-                  count,
-                  x: rect.left + rect.width / 2 - calendarRect.left,
-                  y: rect.top - calendarRect.top,
-                  visible: true,
-                });
-              }
-            }}
-            onMouseLeave={() => {
-              setTooltip((prev) => ({ ...prev, visible: false }));
-            }}
-          />
-        );
-
-        // Passer au jour suivant
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      weeks.push(
-        <div key={`week-${week}`} className={styles.weekColumn}>
-          {days}
-        </div>
-      );
-    }
+      // Ajouter la dernière semaine si elle n'est pas complète
+      if (currentWeek.length > 0) {
+        while (currentWeek.length < 7) {
+          const dateStr = formatDate(currentDate);
+          const isFirstOfMonth = currentDate.getDate() === 1;
+          const isFirstMondayOfMonth =
+            currentDate.getDay() === 1 && currentDate.getDate() <= 7;
 
-    // Générer les étiquettes de mois avec un positionnement amélioré
-    const monthElements = monthLabels.map((label, index) => {
-      // Calculer la position plus précisément
-      const position = label.position * COLUMN_WIDTH + 18;
+          currentWeek.push({
+            date: new Date(currentDate),
+            dateStr,
+            isFirstOfMonth,
+            isFirstMondayOfMonth,
+            incidentLevel: data[dateStr] || 0,
+            monthName: getMonthName(currentDate),
+          });
 
-      return (
-        <div
-          key={`month-${index}`}
-          className={styles.monthLabel}
-          style={{ left: `${position}px` }}
-        >
-          {label.month}
-        </div>
-      );
-    });
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
 
-    return (
-      <div className={styles.calendarContent} ref={calendarRef}>
-        <div className={styles.monthsRow}>{monthElements}</div>
-        <div className={styles.calendarGrid}>{weeks}</div>
+        result.push({
+          weekIndex: weekIndex,
+          days: currentWeek,
+        });
+      }
 
-        {tooltip.visible && (
-          <div
-            className={styles.tooltip}
-            style={{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }}
-          >
-            <div className={styles.tooltipDate}>
-              {formatReadableDate(tooltip.date)}
-            </div>
-            {tooltip.count > 0 && (
-              <div className={styles.tooltipCount}>
-                {tooltip.count} incident{tooltip.count > 1 ? "s" : ""}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
+      return result;
+    };
+
+    const generatedDays = generateStructuredDates();
+    setCalendarDays(generatedDays);
+  }, [year, data]);
+
+  // Formater la date en chaîne 'YYYY-MM-DD'
+  const formatDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
-  // Si pas de données
-  if (!Object.keys(calendarData).length) {
-    return (
-      <div className="text-center py-4 text-gray-500">
-        Aucune donnée disponible
-      </div>
-    );
-  }
+  const getColor = (incidentLevel: number): string => {
+    if (incidentLevel <= 0) {
+      return emptyColor;
+    }
+    
+    // Pour les niveaux 10+, utiliser les dernières couleurs du dégradé
+    if (incidentLevel >= 10) {
+      // Calculer l'index pour les niveaux élevés (10+)
+      // On utilise modulo pour ne pas dépasser la longueur du tableau
+      const highLevelIndex = 10 + Math.min(incidentLevel - 10, 4);
+      return colorScale[highLevelIndex] || colorScale[colorScale.length - 1];
+    }
+    
+    // Pour les niveaux 1-9, utiliser directement l'index
+    return colorScale[incidentLevel];
+  };
+
+  // Obtenir le texte du niveau d'incident pour l'infobulle
+  const getIncidentText = (level: number): string => {
+    if (errorLabels[level]) {
+      return errorLabels[level];
+    }
+    
+    if (level === 0) return "Aucun incident";
+    if (level === 1) return "1 incident";
+    return `${level} incidents`;
+  };
+
+  const getMonthName = (date: Date): string => {
+    const monthNames = [
+      "Jan",
+      "Fév",
+      "Mar",
+      "Avr",
+      "Mai",
+      "Juin",
+      "Juil",
+      "Août",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Déc",
+    ];
+    return monthNames[date.getMonth()];
+  };
+
+  // Calculer les couleurs à afficher dans la légende
+  const getLegendColors = () => {
+    // Si la palette contient beaucoup de couleurs, montrer une sélection représentative
+    if (colorScale.length > 7) {
+      // Montrer les couleurs 0, 1, 3, 5, 7, 10, et 14 (noir) pour un bon échantillon du dégradé
+      return [0, 1, 3, 5, 7, 9, 10, 14].map(i => colorScale[i] || colorScale[colorScale.length - 1]);
+    }
+    // Sinon montrer toutes les couleurs
+    return colorScale;
+  };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.title}>
-          Calendrier d'incidents
-          <button
-            className={styles.infoButton}
-            onClick={() => setShowLegend(!showLegend)}
-            aria-label="Légende"
-          >
-            <InfoIcon size={14} />
-          </button>
-          {showLegend && (
-            <div className={styles.legend}>
-              <span className={styles.legendLabel}>Moins</span>
-              {[0, 1, 2, 3, 4].map((level) => (
-                <div
-                  key={`legend-${level}`}
-                  className={styles.legendBox}
-                  style={{ backgroundColor: getColor(level, 4) }}
-                />
-              ))}
-              <span className={styles.legendLabel}>Plus</span>
-            </div>
-          )}
+    <div className={styles.heatmapContainer}>
+      <div className={styles.heatmap}>
+        <div className={styles.dayLabels}>
+          <div className={styles.dayLabel}>L</div>
+          <div className={styles.dayLabel}>M</div>
+          <div className={styles.dayLabel}>M</div>
+          <div className={styles.dayLabel}>J</div>
+          <div className={styles.dayLabel}>V</div>
+          <div className={styles.dayLabel}>S</div>
+          <div className={styles.dayLabel}>D</div>
         </div>
 
-        <div className={styles.controls}>
-          <button
-            className={styles.navButton}
-            onClick={navigateBack}
-            aria-label="Mois précédents"
-          >
-            <ChevronLeft size={16} />
-          </button>
-
-          {!isCurrentPeriodVisible() && (
-            <button
-              className={styles.todayButton}
-              onClick={navigateToday}
-              aria-label="Aujourd'hui"
-            >
-              Aujourd'hui
-            </button>
-          )}
-
-          <button
-            className={styles.navButton}
-            onClick={navigateForward}
-            aria-label="Mois suivants"
-          >
-            <ChevronRight size={16} />
-          </button>
+        <div className={styles.calendarWrapper}>
+          <div className={styles.grid} ref={gridRef}>
+            {calendarDays.map((week) => (
+              <div key={week.weekIndex} className={styles.week}>
+                {week.days.map((day, dayIndex) => {
+                  const isTodayDay = isToday(day.date);
+                  return (
+                    <div
+                      key={dayIndex + day.dateStr}
+                      className={`
+                        ${styles.day}
+                        ${isTodayDay ? styles.today : ""}
+                        ${day.isFirstMondayOfMonth ? styles.monthStart : ""}
+                        ${day.incidentLevel > 0 ? styles.hasData : ""}
+                      `}
+                      style={{ backgroundColor: getColor(day.incidentLevel) }}
+                      ref={isTodayDay ? todayRef : null}
+                      onClick={() => {
+                        setTooltip({
+                          visible: true,
+                          date: formatTooltipDate(day.date),
+                          incident: getIncidentText(day.incidentLevel),
+                          level: day.incidentLevel,
+                        });
+                      }}
+                      data-month={day.isFirstMondayOfMonth ? day.monthName : ""}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      <div className={styles.calendarWrapper} ref={wrapperRef}>
-        {generateCalendar()}
       </div>
 
       <div className={styles.footer}>
-        <Calendar size={12} />
-        Affichage de {fixedMonths} mois d'activité
+        <div className={styles.info}>
+          {tooltip.visible && (
+            <div>
+              <span>{tooltip.date}: </span>
+              <span>{tooltip.level === 0 ? "Aucun incident" : (tooltip.level === 1 ? "1 incident" : `${tooltip.level} incidents`)}</span>
+            </div>
+          )}
+        </div>
+        <div className={styles.legend}>
+          <div className={styles.legendLabel}>0</div>
+          {getLegendColors().map((color, index) => (
+            <div
+              key={index}
+              className={styles.legendItem}
+              style={{ backgroundColor: color }}
+              title={index === 0 ? "Aucun" : index === getLegendColors().length - 1 ? "10+" : `${index}`}
+            />
+          ))}
+          <div className={styles.legendLabel}>10+</div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default IncidentCalendarClient;

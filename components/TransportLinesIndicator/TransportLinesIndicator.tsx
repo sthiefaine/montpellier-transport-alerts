@@ -4,7 +4,6 @@ import { AlertCircle, Bell, Loader2 } from "lucide-react";
 import tramLinesData from "@/data/transport-lines.json";
 import styles from "./TransportLinesIndicator.module.css";
 
-// Type pour les alertes actives
 interface Alert {
   id: string;
   routeIds: string | null;
@@ -66,9 +65,9 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
             .split(/[,;|]/)
             .map((route) => {
               const trimmedRoute = route.trim();
-              // Transformer les identifiants "7-X" en "X"
-              if (trimmedRoute.startsWith("7-")) {
-                return trimmedRoute.substring(2); // Extraire tout après "7-"
+              // Transformer les identifiants "7-X", "8-X" en "X"
+              if (trimmedRoute.includes("-")) {
+                return trimmedRoute.substring(2);
               }
               return trimmedRoute;
             })
@@ -79,7 +78,6 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
           });
         }
       });
-
       setLineAlertsMap(alertsMap);
     }
   }, [activeAlerts]);
@@ -111,7 +109,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
 
   // Vérifier si une ligne a une alerte
   const hasAlert = (line: any) => {
-    const commercialId = line.ligne_param?.commercialId;
+    const commercialId = line.numero;
     const name = line.ligne_param?.name;
 
     // Vérifier si l'ID commercial correspond directement
