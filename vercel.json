@@ -18,6 +18,10 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/gtfs/import/stops-list",
+      "schedule": "5 3 * * *"
+    },
+    {
       "path": "/api/gtfs/collect-realtime",
       "schedule": "*/1 5-23 * * *"
     },

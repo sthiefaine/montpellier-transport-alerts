@@ -109,7 +109,30 @@ model Stop {
   stopTimes      StopTime[]
 
   hourlyStopMetrics HourlyStopMetric[]
+  stopsListEntries  StopsList[]
+
   @@map("stops")
+}
+
+model StopsList {
+  id                 Int      @id @default(autoincrement())
+  description        String
+  lon                Float
+  lat                Float
+  lignesPassantes    String?  @map("lignes_passantes")
+  lignesEtDirections String?  @map("lignes_et_directions")
+  station            String?
+  commune            String?
+  source             String
+  stopId             String?
+  stop               Stop?    @relation(fields: [stopId], references: [id])
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([lon, lat])
+  @@index([stopId])
+  @@index([description])
+  @@map("stops_list")
 }
 
 model StopSequence {
@@ -224,39 +247,37 @@ model HourlyMetric {
 }
 
 model HourlyStopMetric {
-  id              Int      @id @default(autoincrement())
-  date            DateTime @db.Date
-  hour            Int      
-  stopId          String   @map("stop_id")
-  avgDelay        Float    @default(0) @map("avg_delay")
-  maxDelay        Float    @default(0) @map("max_delay")
-  minDelay        Float    @default(0) @map("min_delay")
-  observations    Int      @default(0)
-  delayUnder30s   Float    @default(0) @map("delay_under_30s")
-  delay30to60s    Float    @default(0) @map("delay_30_to_60s")
-  delay60to120s   Float    @default(0) @map("delay_60_to_120s")
-  delay120to300s  Float    @default(0) @map("delay_120_to_300s")
-  delayOver300s   Float    @default(0) @map("delay_over_300s")
-  earlyRate30     Float    @default(0) @map("early_rate_30")
-  earlyRate60     Float    @default(0) @map("early_rate_60")
-  earlyRate120    Float    @default(0) @map("early_rate_120")
-  onTimeRate30    Float    @default(0) @map("on_time_rate_30")
-  onTimeRate60    Float    @default(0) @map("on_time_rate_60")
-  onTimeRate120   Float    @default(0) @map("on_time_rate_120")
-  lateRate30      Float    @default(0) @map("late_rate_30")
-  lateRate60      Float    @default(0) @map("late_rate_60")
-  lateRate120     Float    @default(0) @map("late_rate_120")
-  
+  id             Int      @id @default(autoincrement())
+  date           DateTime @db.Date
+  hour           Int
+  stopId         String   @map("stop_id")
+  avgDelay       Float    @default(0) @map("avg_delay")
+  maxDelay       Float    @default(0) @map("max_delay")
+  minDelay       Float    @default(0) @map("min_delay")
+  observations   Int      @default(0)
+  delayUnder30s  Float    @default(0) @map("delay_under_30s")
+  delay30to60s   Float    @default(0) @map("delay_30_to_60s")
+  delay60to120s  Float    @default(0) @map("delay_60_to_120s")
+  delay120to300s Float    @default(0) @map("delay_120_to_300s")
+  delayOver300s  Float    @default(0) @map("delay_over_300s")
+  earlyRate30    Float    @default(0) @map("early_rate_30")
+  earlyRate60    Float    @default(0) @map("early_rate_60")
+  earlyRate120   Float    @default(0) @map("early_rate_120")
+  onTimeRate30   Float    @default(0) @map("on_time_rate_30")
+  onTimeRate60   Float    @default(0) @map("on_time_rate_60")
+  onTimeRate120  Float    @default(0) @map("on_time_rate_120")
+  lateRate30     Float    @default(0) @map("late_rate_30")
+  lateRate60     Float    @default(0) @map("late_rate_60")
+  lateRate120    Float    @default(0) @map("late_rate_120")
+
   // Relation avec le modèle Stop
-  stop            Stop     @relation(fields: [stopId], references: [id])
+  stop Stop @relation(fields: [stopId], references: [id])
 
   // Contrainte d'unicité
   @@unique([date, hour, stopId], name: "hourly_stop_metrics_unique_date_hour_stop")
-  
   // Index pour des requêtes efficaces
   @@index([date, hour], name: "hourly_stop_metrics_date_hour_idx")
   @@index([stopId], name: "hourly_stop_metrics_stop_id_idx")
-  
   // Nom de la table dans la base de données
   @@map("hourly_stop_metrics")
 }
@@ -345,5 +366,6 @@ model XSession {
   cookie    Json
   expiresAt DateTime
   createdAt DateTime @default(now())
+
   @@map("x_sessions")
 }
