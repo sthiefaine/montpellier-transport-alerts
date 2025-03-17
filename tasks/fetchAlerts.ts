@@ -3,7 +3,10 @@ import * as protobuf from "protobufjs";
 import { prisma } from "@/lib/prisma";
 import path from "path";
 import fs from "fs";
-import { determineCauseByKeywords, determineEffectByKeywords } from "@/helpers/incident";
+import {
+  determineCauseByKeywords,
+  determineEffectByKeywords,
+} from "@/helpers/incident";
 import { revalidatePath } from "next/cache";
 
 const ALERT_URL =
@@ -21,7 +24,13 @@ function isComplement(headerText: string, descriptionText: string) {
     header.includes("complément") ||
     description.includes("complément d'info") ||
     description.includes("complément d'information") ||
-    description.startsWith("complément") || description.includes("fin")
+    description.startsWith("complément") ||
+    description.includes("fin d'information") ||
+    description.includes("fin de l'information") ||
+    header.includes("fin d'incident") ||
+    header.includes("fin alerte") ||
+    header.includes("reprise") ||
+    header.includes("résolution")
   );
 }
 
@@ -106,8 +115,8 @@ async function saveAlerts(feedMessage: any): Promise<void> {
       `${feedMessage.entity.length} alertes traitées (dont ${complementAlerts.length} compléments)`
     );
 
-    revalidatePath('/');
-    revalidatePath('/alertes');
+    revalidatePath("/");
+    revalidatePath("/alertes");
   } catch (error) {
     console.error("Erreur lors de la sauvegarde des alertes:", error);
     throw error;
@@ -145,7 +154,8 @@ async function processAlert(entity: any): Promise<void> {
 
   const cause =
     alert.cause || determineCauseByKeywords(descriptionText, headerText);
-  const effect = alert.effect || determineEffectByKeywords(descriptionText, headerText)
+  const effect =
+    alert.effect || determineEffectByKeywords(descriptionText, headerText);
 
   await prisma.alert.upsert({
     where: { id: entity.id },
@@ -178,7 +188,10 @@ async function processAlert(entity: any): Promise<void> {
   });
 }
 
-async function processComplement(entity: { alert: any; id: any; }): Promise<void> {
+async function processComplement(entity: {
+  alert: any;
+  id: any;
+}): Promise<void> {
   const alert = entity.alert;
 
   const headerText = alert.headerText?.translation?.[0]?.text || "";
