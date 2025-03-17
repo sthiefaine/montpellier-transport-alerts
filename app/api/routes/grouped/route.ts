@@ -334,7 +334,7 @@ export async function GET() {
               allRouteIds: allRouteIds,
             },
             {
-              id: mainId, // Utiliser l'ID principal pour direction aussi
+              id: allRouteIds[1],
               name: headsign1, // Utiliser le headsign au lieu de "Retour"
               directionId: 1,
               allRouteIds: allRouteIds,

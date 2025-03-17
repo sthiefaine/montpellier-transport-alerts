@@ -68,7 +68,7 @@ export default function DeparturesFinder({
   initialPopularStops,
   terminusByRoute,
 }: DeparturesFinderProps) {
-  // State pour les sélections et données
+
   const [routes, setRoutes] = useState<Route[]>(initialRoutes);
   const [popularStops, setPopularStops] = useState<Stop[]>(initialPopularStops);
   const [allStops, setAllStops] = useState<Stop[]>([]);
@@ -87,6 +87,7 @@ export default function DeparturesFinder({
   // Quand une route est sélectionnée, récupérer ses arrêts
   useEffect(() => {
     if (selectedRoute) {
+      console.log("Fetching stops for route:", selectedRoute);
       fetchStopsForRoute(selectedRoute);
     } else {
       setStopsForRoute([]);
