@@ -1,7 +1,24 @@
-import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+"use server";
 
-export async function GET(request: NextRequest) {
+import { prisma } from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
+
+interface Alert {
+  id: string;
+  timeStart: Date;
+  timeEnd: Date | null;
+  cause: string;
+  effect: string;
+  headerText: string;
+  descriptionText: string;
+  routeIds: string | null;
+  stopIds: string | null;
+  isComplement: boolean;
+  parentAlertId: string | null;
+  [key: string]: any;
+}
+
+export async function getActiveAlerts(): Promise<Alert[]> {
   try {
     const now = new Date();
 
@@ -28,28 +45,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return new Response(JSON.stringify(activeAlerts), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store, max-age=0",
-      },
-    });
+    return activeAlerts;
   } catch (error) {
     console.error("Erreur lors de la récupération des alertes actives:", error);
-
-    return new Response(
-      JSON.stringify({
-        error: "Erreur lors de la récupération des alertes actives",
-        message: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store, max-age=0",
-        },
-      }
-    );
+    // En cas d'erreur, retourner un tableau vide
+    return [];
   }
+}
+
+// Fonction pour forcer la revalidation des alertes
+export async function refreshActiveAlerts() {
+  revalidateTag("alerts");
+  return { success: true, message: "Alertes actives revalidées" };
 }

@@ -1,6 +1,6 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { AlertCircle, Bell, Loader2 } from "lucide-react";
+"use server";
+import React from "react";
+import { Bell } from "lucide-react";
 import tramLinesData from "@/data/transport-lines.json";
 import styles from "./TransportLinesIndicator.module.css";
 
@@ -11,76 +11,39 @@ interface Alert {
 }
 
 interface TransportLinesAlertsProps {
-  activeAlerts?: Alert[];
+  activeAlertsProps?: Alert[];
   className?: string;
 }
 
-const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
-  activeAlerts: initialAlerts,
+const TransportLinesAlerts = async ({
+  activeAlertsProps: initialAlerts,
   className = "",
-}) => {
-  const [activeAlerts, setActiveAlerts] = useState<Alert[]>(
-    initialAlerts || []
-  );
-  const [lineAlertsMap, setLineAlertsMap] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [loading, setLoading] = useState<boolean>(!initialAlerts);
-  const [error, setError] = useState<string | null>(null);
+}: TransportLinesAlertsProps) => {
+  const activeAlerts: Alert[] = (await getAlerts()) ?? initialAlerts;
 
-  // Récupérer les alertes actives si non fournies
-  useEffect(() => {
-    if (initialAlerts && initialAlerts.length > 0) {
-      setActiveAlerts(initialAlerts);
-      return;
-    }
+  const lineAlertsMap: Record<string, boolean> = {};
 
-    const fetchActiveAlerts = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/alerts/active");
-        if (!response.ok) {
-          throw new Error("Erreur lors de la récupération des alertes");
-        }
-        const data = await response.json();
-        setActiveAlerts(data);
-      } catch (err) {
-        console.error("Erreur:", err);
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
-      } finally {
-        setLoading(false);
+  if (activeAlerts?.length > 0) {
+    activeAlerts.forEach((alert) => {
+      if (alert.routeIds) {
+        const routeIds = alert.routeIds
+          .split(/[,;|]/)
+          .map((route) => {
+            const trimmedRoute = route.trim();
+            // Transformer les identifiants "7-X", "8-X" en "X"
+            if (trimmedRoute.includes("-")) {
+              return trimmedRoute.substring(2);
+            }
+            return trimmedRoute;
+          })
+          .filter((route) => route.length > 0);
+
+        routeIds.forEach((route) => {
+          lineAlertsMap[route] = true;
+        });
       }
-    };
-
-    fetchActiveAlerts();
-  }, [initialAlerts]);
-
-  useEffect(() => {
-    if (activeAlerts.length > 0) {
-      const alertsMap: Record<string, boolean> = {};
-
-      activeAlerts.forEach((alert) => {
-        if (alert.routeIds) {
-          const routeIds = alert.routeIds
-            .split(/[,;|]/)
-            .map((route) => {
-              const trimmedRoute = route.trim();
-              // Transformer les identifiants "7-X", "8-X" en "X"
-              if (trimmedRoute.includes("-")) {
-                return trimmedRoute.substring(2);
-              }
-              return trimmedRoute;
-            })
-            .filter((route) => route.length > 0);
-
-          routeIds.forEach((route) => {
-            alertsMap[route] = true;
-          });
-        }
-      });
-      setLineAlertsMap(alertsMap);
-    }
-  }, [activeAlerts]);
+    });
+  }
 
   // Identifier les IDs des navettes
   const navetteIds = tramLinesData
@@ -104,20 +67,16 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
       ["50", "91", "95", "96", "93"].includes(line.id.toString())
   );
 
-  // Couleur par défaut (couleur de la ligne 1)
   const defaultColor = "#005CA9";
 
-  // Vérifier si une ligne a une alerte
   const hasAlert = (line: any) => {
     const commercialId = line.numero;
     const name = line.ligne_param?.name;
 
-    // Vérifier si l'ID commercial correspond directement
     if (commercialId && lineAlertsMap[commercialId]) {
       return true;
     }
 
-    // Vérifier si le nom de la ligne correspond (pour les cas où le nom est un nombre)
     if (name && !isNaN(Number(name)) && lineAlertsMap[name]) {
       return true;
     }
@@ -125,13 +84,11 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
     return false;
   };
 
-  // Filtrer les lignes pour ne garder que celles avec des alertes (utilisé pour les compteurs)
   const alertedTramways = tramways.filter(hasAlert);
   const alertedBuses = buses.filter(hasAlert);
   const alertedAutobus = autobus.filter(hasAlert);
   const alertedNavettes = navettes.filter(hasAlert);
 
-  // Calculer le nombre total de lignes ayant des alertes
   const totalAlertedLines =
     alertedTramways.length +
     alertedBuses.length +
@@ -145,9 +102,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
         {totalAlertedLines > 0 && (
           <div className="relative">
             <Bell size={20} className={styles.bellIcon} />
-            <span className={styles.alertIndicator}>
-              {totalAlertedLines}
-            </span>
+            <span className={styles.alertIndicator}>{totalAlertedLines}</span>
           </div>
         )}
       </div>
@@ -181,11 +136,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                   >
                     {line.ligne_param.name}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}
@@ -224,11 +175,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                       ? "N"
                       : line.ligne_param.name}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}
@@ -265,11 +212,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                   >
                     {line.ligne_param.name}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}
@@ -307,11 +250,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                   >
                     {displayName}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}
@@ -323,3 +262,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
 };
 
 export default TransportLinesAlerts;
+function getAlerts(): Alert[] | PromiseLike<Alert[]> {
+  throw new Error("Function not implemented.");
+}
+
