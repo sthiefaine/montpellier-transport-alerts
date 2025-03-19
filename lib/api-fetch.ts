@@ -52,6 +52,7 @@ export const apiFetch = async <T = any>(
 
     const headers: HeadersInit = {
       "Content-Type": "application/json",
+      "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "",
       ...(fetchOptions.headers || {}),
     };
 
