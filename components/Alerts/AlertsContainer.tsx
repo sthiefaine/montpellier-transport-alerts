@@ -11,6 +11,7 @@ import {
 import { Alert } from "@/lib/types";
 import styles from "./AlertsContainer.module.css";
 import AlertCard from "./AlertCard";
+import { apiFetch } from "@/lib/api-fetch";
 
 export default function AlertsContainer() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -46,16 +47,9 @@ export default function AlertsContainer() {
       }
 
       console.log("Fetching alerts with params:", params.toString());
-      const response = await fetch(`/api/alerts?${params.toString()}`);
 
-      if (!response.ok) {
-        throw new Error(
-          `Erreur lors de la récupération des alertes: ${response.status}`
-        );
-      }
-
-      const alertsData = await response.json();
-      setAlerts(alertsData);
+      const response = await apiFetch(`/api/alerts?${params.toString()}`);
+      setAlerts(response);
     } catch (err) {
       console.error("Error fetching alerts:", err);
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -67,7 +61,7 @@ export default function AlertsContainer() {
   // Initial fetch of alerts
   useEffect(() => {
     fetchAlerts();
-  }, [statusFilter, timeFilter, routeFilter]); // Re-fetch when any filter changes
+  }, [statusFilter, timeFilter, routeFilter]);
 
   // Handle manual refresh
   const handleRefresh = () => {

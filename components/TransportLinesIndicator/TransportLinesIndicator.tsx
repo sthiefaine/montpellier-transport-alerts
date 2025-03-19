@@ -1,8 +1,9 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { AlertCircle, Bell, Loader2 } from "lucide-react";
+"use server";
+import React from "react";
+import { Bell } from "lucide-react";
 import tramLinesData from "@/data/transport-lines.json";
 import styles from "./TransportLinesIndicator.module.css";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Alert {
   id: string;
@@ -11,78 +12,50 @@ interface Alert {
 }
 
 interface TransportLinesAlertsProps {
-  activeAlerts?: Alert[];
   className?: string;
 }
 
-const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
-  activeAlerts: initialAlerts,
+const getAlerts = async () => {
+  try {
+    const response = await apiFetch(`/api/alerts/active`, {
+      next: { tags: ["alerts"] },
+    });
+
+    return await response
+  } catch (error) {
+    console.error("Erreur lors de la récupération des alertes:", error);
+    return [];
+  }
+};
+
+const TransportLinesAlerts = async ({
   className = "",
-}) => {
-  const [activeAlerts, setActiveAlerts] = useState<Alert[]>(
-    initialAlerts || []
-  );
-  const [lineAlertsMap, setLineAlertsMap] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [loading, setLoading] = useState<boolean>(!initialAlerts);
-  const [error, setError] = useState<string | null>(null);
+}: TransportLinesAlertsProps) => {
+  const activeAlerts: Alert[] = (await getAlerts()) || [];
 
-  // Récupérer les alertes actives si non fournies
-  useEffect(() => {
-    if (initialAlerts && initialAlerts.length > 0) {
-      setActiveAlerts(initialAlerts);
-      return;
-    }
+  const lineAlertsMap: Record<string, boolean> = {};
 
-    const fetchActiveAlerts = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/alerts/active", {
-          next: { tags: ["alerts"] },
+  if (activeAlerts && activeAlerts.length > 0) {
+    activeAlerts.forEach((alert) => {
+      if (alert.routeIds) {
+        const routeIds = alert.routeIds
+          .split(/[,;|]/)
+          .map((route) => {
+            const trimmedRoute = route.trim();
+            // Transformer les identifiants "7-X", "8-X" en "X"
+            if (trimmedRoute.includes("-")) {
+              return trimmedRoute.substring(2);
+            }
+            return trimmedRoute;
+          })
+          .filter((route) => route.length > 0);
+
+        routeIds.forEach((route) => {
+          lineAlertsMap[route] = true;
         });
-        if (!response.ok) {
-          throw new Error("Erreur lors de la récupération des alertes");
-        }
-        const data = await response.json();
-        setActiveAlerts(data);
-      } catch (err) {
-        console.error("Erreur:", err);
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchActiveAlerts();
-  }, [initialAlerts]);
-
-  useEffect(() => {
-    if (activeAlerts.length > 0) {
-      const alertsMap: Record<string, boolean> = {};
-
-      activeAlerts.forEach((alert) => {
-        if (alert.routeIds) {
-          const routeIds = alert.routeIds
-            .split(/[,;|]/)
-            .map((route) => {
-              const trimmedRoute = route.trim();
-              // Transformer les identifiants "7-X", "8-X" en "X"
-              if (trimmedRoute.includes("-")) {
-                return trimmedRoute.substring(2);
-              }
-              return trimmedRoute;
-            })
-            .filter((route) => route.length > 0);
-
-          routeIds.forEach((route) => {
-            alertsMap[route] = true;
-          });
-        }
-      });
-      setLineAlertsMap(alertsMap);
-    }
-  }, [activeAlerts]);
+    });
+  }
 
   // Identifier les IDs des navettes
   const navetteIds = tramLinesData
@@ -147,9 +120,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
         {totalAlertedLines > 0 && (
           <div className="relative">
             <Bell size={20} className={styles.bellIcon} />
-            <span className={styles.alertIndicator}>
-              {totalAlertedLines}
-            </span>
+            <span className={styles.alertIndicator}>{totalAlertedLines}</span>
           </div>
         )}
       </div>
@@ -183,11 +154,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                   >
                     {line.ligne_param.name}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}
@@ -226,11 +193,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                       ? "N"
                       : line.ligne_param.name}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}
@@ -267,11 +230,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                   >
                     {line.ligne_param.name}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}
@@ -309,11 +268,7 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
                   >
                     {displayName}
                   </div>
-                  {hasIssue && (
-                    <div className={styles.alertIndicator}>
-                      !
-                    </div>
-                  )}
+                  {hasIssue && <div className={styles.alertIndicator}>!</div>}
                 </div>
               );
             })}

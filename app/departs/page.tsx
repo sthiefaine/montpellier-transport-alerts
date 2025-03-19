@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import DeparturesFinder from "@/components/DeparturesFinder/DeparturesFinder";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Route {
   id: string;
@@ -36,14 +37,9 @@ export default function DeparturesPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch grouped routes from your API
-        const routesResponse = await fetch("/api/routes/grouped");
+        const routesResponse = await apiFetch(`/api/routes/grouped`);
 
-        if (!routesResponse.ok) {
-          throw new Error(`Failed to fetch routes: ${routesResponse.status}`);
-        }
-
-        const groupedRoutes = await routesResponse.json();
+        const groupedRoutes = routesResponse
 
         // Extraction des données de terminus pour chaque route
         const terminusData: TerminusByRoute = {};

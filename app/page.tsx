@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowDown, BarChart3, Clock } from "lucide-react";
 import IncidentCalendar from "@/components/IncidentCalendar/IncidentCalendar";
 import MiniNavCard from "@/components/Cards/MiniNavCard/MiniNavCard";
 import TransportLinesIndicator from "@/components/TransportLinesIndicator/TransportLinesIndicator";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface AlertStats {
   activeCount: number;
@@ -45,20 +46,11 @@ interface DelayStats {
 
 async function getAlertStats(): Promise<AlertStats> {
   try {
-    const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      }/api/alerts/stats/summary`,
-      {
-        next: { tags: ["alerts"] },
-      }
-    );
+    const data = await apiFetch(`/api/alerts/stats/summary`, {
+      next: { tags: ["alerts"] },
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch alert stats");
-    }
-
-    return response.json();
+    return data;
   } catch (error) {
     console.error("Error fetching alert stats:", error);
     return {
@@ -74,20 +66,11 @@ async function getAlertStats(): Promise<AlertStats> {
 
 async function getEnhancedDelayStats(): Promise<DelayStats> {
   try {
-    const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      }/api/gtfs/delays/enhanced-summary`,
-      {
-        next: { revalidate: 60 },
-      }
-    );
+    const response = await apiFetch(`/api/gtfs/delays/enhanced-summary`, {
+      next: { revalidate: 360 },
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch enhanced delay stats");
-    }
-
-    return response.json();
+    return response
   } catch (error) {
     console.error("Error fetching enhanced delay stats:", error);
     return {

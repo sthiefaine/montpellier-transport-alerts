@@ -7,7 +7,7 @@ import {
   determineCauseByKeywords,
   determineEffectByKeywords,
 } from "@/helpers/incident";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 const ALERT_URL =
   process.env.ALERT_URL ||
@@ -301,6 +301,8 @@ export async function fetchAndProcessAlerts(): Promise<void> {
     const feedMessage = await parseAlertFile(alertBuffer);
 
     await saveAlerts(feedMessage);
+
+    revalidateTag("alerts");
 
     console.log("Traitement des alertes terminé avec succès");
   } catch (error) {

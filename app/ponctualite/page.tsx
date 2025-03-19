@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import styles from "./page.module.css";
 import { Clock, TrendingUp, AlertTriangle, LineChart } from "lucide-react";
 import { formatSecondsToTime } from "@/helpers/time";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface EnhancedSummaryStats {
   punctuality_rate: number;
@@ -31,7 +32,7 @@ export default function PonctualiteOverviewPage() {
       setIsLoading(true);
       try {
         // Récupérer les statistiques générales
-        const statsResponse = await fetch("/api/gtfs/delays/enhanced-summary");
+        const statsResponse = await apiFetch("/api/gtfs/delays/enhanced-summary");
         const statsData = await statsResponse.json();
         setStats(statsData);
       } catch (error) {

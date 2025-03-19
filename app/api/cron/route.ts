@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
 
     await fetchAndProcessAlerts();
 
+    revalidatePath("/");
     revalidateTag("alerts");
 
     return new Response(

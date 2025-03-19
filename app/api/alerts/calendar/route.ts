@@ -6,23 +6,6 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const months = parseInt(searchParams.get("months") || "12");
-    
-    // Si une action de revalidation est demandée avec un secret valide
-    const revalidate = searchParams.get("revalidate");
-    const secret = searchParams.get("secret");
-    
-    if (revalidate === "true" && secret === process.env.REVALIDATION_SECRET) {
-      revalidateTag("alerts-calendar");
-      return new Response(
-        JSON.stringify({ revalidated: true, message: "Revalidation réussie" }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
 
     // Calcul des dates pour la plage de récupération
     const endDate = new Date();
@@ -80,7 +63,6 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          "Cache-Control": "public, s-maxage=300", // 5 minutes pour le cache
         }
       }
     );
