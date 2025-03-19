@@ -38,7 +38,9 @@ const TransportLinesAlerts: React.FC<TransportLinesAlertsProps> = ({
     const fetchActiveAlerts = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/alerts/active");
+        const response = await fetch("/api/alerts/active", {
+          next: { tags: ["alerts"] },
+        });
         if (!response.ok) {
           throw new Error("Erreur lors de la récupération des alertes");
         }

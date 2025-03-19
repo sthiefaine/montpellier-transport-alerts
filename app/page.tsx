@@ -48,7 +48,10 @@ async function getAlertStats(): Promise<AlertStats> {
     const response = await fetch(
       `${
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      }/api/alerts/stats/summary`
+      }/api/alerts/stats/summary`,
+      {
+        next: { tags: ["alerts"] },
+      }
     );
 
     if (!response.ok) {
