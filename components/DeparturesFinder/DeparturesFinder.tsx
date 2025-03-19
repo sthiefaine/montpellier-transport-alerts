@@ -17,19 +17,58 @@ import styles from "./DeparturesFinder.module.css";
 import LineSelector from "./Line";
 import StopSelector from "./Stop";
 import DirectionSelector from "./DirectionSelector";
-import {
-  Route,
-  Stop,
-  EnhancedStop,
-  TerminusByRoute,
-  DeparturesFinderProps,
-} from "@/lib/types/departures";
+
+// Updated interface for Route to handle both property variations
+interface Route {
+  id: string;
+  shortName: string;
+  longName: string;
+  color?: string | null;
+  type: number;
+  routeId?: string;
+  // Added properties that might be in the API response
+  number?: string;
+  name?: string;
+  alternativeIds?: string[];
+  routeIds?: string[];
+  directions?: {
+    id: string;
+    name: string;
+    directionId: number;
+    allRouteIds?: string[];
+  }[];
+}
+
+interface Stop {
+  id: string;
+  name: string;
+  code?: string | null;
+  lat?: number;
+  lon?: number;
+  position?: number;
+  isTerminus?: boolean;
+  directionId?: number;
+  routeId?: string;
+}
+
+interface TerminusByRoute {
+  [routeId: string]: {
+    [directionId: string]: string;
+  };
+}
+
+interface DeparturesFinderProps {
+  initialRoutes: Route[];
+  initialPopularStops: Stop[];
+  terminusByRoute: TerminusByRoute;
+}
 
 export default function DeparturesFinder({
   initialRoutes,
   initialPopularStops,
   terminusByRoute,
 }: DeparturesFinderProps) {
+
   const [routes, setRoutes] = useState<Route[]>(initialRoutes);
   const [popularStops, setPopularStops] = useState<Stop[]>(initialPopularStops);
   const [allStops, setAllStops] = useState<Stop[]>([]);
@@ -42,7 +81,7 @@ export default function DeparturesFinder({
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"lines" | "stops">("lines");
-  const [stopsForRoute, setStopsForRoute] = useState<EnhancedStop[]>([]);
+  const [stopsForRoute, setStopsForRoute] = useState<Stop[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   // Quand une route est sélectionnée, récupérer ses arrêts
@@ -68,60 +107,29 @@ export default function DeparturesFinder({
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
 
-      const data: EnhancedStop[] = await response.json();
+      const data = await response.json();
       console.log(`Loaded ${data.length} stops for line ${shortName}`);
 
-      // Les données sont déjà triées par l'API : d'abord par direction, puis par position
-      setStopsForRoute(data);
+      // Trier les arrêts : d'abord par direction, puis par position
+      const sortedStops = data.sort((a: any, b: any) => {
+        // D'abord trier par direction
+        if (a.directionId !== b.directionId) {
+          return (a.directionId || 0) - (b.directionId || 0);
+        }
+
+        // Ensuite par position
+        if (a.position !== undefined && b.position !== undefined) {
+          return a.position - b.position;
+        }
+
+        // En dernier recours par nom
+        return a.name.localeCompare(b.name);
+      });
+
+      setStopsForRoute(sortedStops);
     } catch (error) {
       console.error("Erreur lors du chargement des arrêts:", error);
       setStopsForRoute([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fonction améliorée pour rechercher des arrêts par nom
-  const fetchStopsBySearch = async (query: string) => {
-    setIsLoading(true);
-    try {
-      // Appeler l'API de la nouvelle table StopsList
-      const response = await fetch(
-        `/api/gtfs/stops-list?q=${encodeURIComponent(
-          query
-        )}&details=true&limit=20`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const searchResults: Stop[] = data.data.map((item: any) => ({
-        id: item.stopId || item.id, // Utiliser le lien vers Stop si disponible
-        name: item.description || item.name,
-        code: null,
-        lat: item.lat,
-        lon: item.lon,
-        lignesPassantes: item.lignesPassantes,
-        lignesEtDirections: item.lignesEtDirections,
-        station: item.station,
-        commune: item.commune,
-        source: item.source,
-      }));
-
-      setFilteredStops(searchResults);
-    } catch (error) {
-      console.error("Erreur lors de la recherche d'arrêts:", error);
-
-      // Fallback au comportement précédent si l'API n'est pas disponible
-      const searchResults = popularStops.filter(
-        (stop) =>
-          stop.name.toLowerCase().includes(query.toLowerCase()) ||
-          stop.code?.toLowerCase().includes(query.toLowerCase())
-      );
-
-      setFilteredStops(searchResults);
     } finally {
       setIsLoading(false);
     }
@@ -135,6 +143,29 @@ export default function DeparturesFinder({
       setFilteredStops([]);
     }
   }, [searchQuery]);
+
+  // Fonction pour rechercher des arrêts par nom
+  const fetchStopsBySearch = async (query: string) => {
+    setIsLoading(true);
+    try {
+      // Simuler un appel API avec un timeout
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Simulation de résultats
+      const searchResults = popularStops.filter(
+        (stop) =>
+          stop.name.toLowerCase().includes(query.toLowerCase()) ||
+          stop.code?.toLowerCase().includes(query.toLowerCase())
+      );
+
+      setFilteredStops(searchResults);
+    } catch (error) {
+      console.error("Erreur lors de la recherche d'arrêts:", error);
+      setFilteredStops([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Gérer la sélection d'une ligne
   const handleRouteSelect = (route: Route) => {
@@ -180,66 +211,6 @@ export default function DeparturesFinder({
   // Safe getter for routeId with fallback to id
   const getRouteId = (route: Route): string => {
     return route.routeId || route.id;
-  };
-
-  // Afficher des informations enrichies pour l'arrêt sélectionné
-  const renderStopInfo = () => {
-    if (!selectedStop) return null;
-
-    // Types de station avec icônes
-    const stationType = selectedStop.source || selectedStop.station;
-    const stationIcon =
-      selectedStop.source === "tram"
-        ? "🚊"
-        : selectedStop.source === "bus"
-        ? "🚌"
-        : null;
-
-    // Lignes passantes
-    const hasLines =
-      selectedStop.lignesPassantes || selectedStop.lignesEtDirections;
-
-    if (!stationType && !hasLines && !selectedStop.commune) return null;
-
-    return (
-      <div className={styles.stopInfoBox}>
-        {stationType && (
-          <div className={styles.stopInfoItem}>
-            {stationIcon && (
-              <span className={styles.infoIcon}>{stationIcon}</span>
-            )}
-            <span>
-              {stationType === "tram"
-                ? "Station de tramway"
-                : stationType === "bus"
-                ? "Arrêt de bus"
-                : stationType}
-            </span>
-          </div>
-        )}
-
-        {hasLines && (
-          <div className={styles.stopInfoItem}>
-            <span className={styles.infoIcon}>🔄</span>
-            <span>
-              Lignes :{" "}
-              {selectedStop.lignesPassantes ||
-                (selectedStop.lignesEtDirections || "")
-                  .split(";")
-                  .map((l: string) => l.split(" ")[0])
-                  .join(", ")}
-            </span>
-          </div>
-        )}
-
-        {selectedStop.commune && (
-          <div className={styles.stopInfoItem}>
-            <span className={styles.infoIcon}>📍</span>
-            <span>{selectedStop.commune}</span>
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -407,9 +378,6 @@ export default function DeparturesFinder({
               </div>
             </div>
           )}
-
-          {/* Information enrichie pour l'arrêt sélectionné */}
-          {selectedStop && renderStopInfo()}
         </div>
       </div>
 

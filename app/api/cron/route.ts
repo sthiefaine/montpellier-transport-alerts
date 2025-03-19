@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { fetchAndProcessAlerts } from "@/tasks/fetchAlerts";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-
   try {
+    
     const authHeader = request.headers.get("authorization");
 
     if (
@@ -19,7 +20,11 @@ export async function GET(request: NextRequest) {
     }
 
     await fetchAndProcessAlerts();
+
+    revalidatePath("/");
+    revalidatePath("/alertes");
     revalidateTag("alerts");
+
     return new Response(
       JSON.stringify({
         success: true,

@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const now = new Date();
 
+    // Récupérer toutes les alertes actives
     const activeAlerts = await prisma.alert.findMany({
       where: {
         timeStart: { lte: now },
