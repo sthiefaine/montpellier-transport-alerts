@@ -126,6 +126,11 @@ async function saveAlerts(feedMessage: any): Promise<void> {
 async function processAlert(entity: any): Promise<void> {
   const alert = entity.alert;
 
+  if (!alert.descriptionText?.translation?.[0]?.text) {
+    console.warn(`Alerte sans description: ${entity.id}`);
+    return;
+  }
+
   const timeRanges = alert.activePeriod || [];
   const timeStart =
     timeRanges.length > 0 && timeRanges[0].start
