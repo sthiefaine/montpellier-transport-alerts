@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron",
-      "schedule": "*/1 5-19 * * *"
+      "schedule": "*/1 4-19 * * *"
     },
     {
       "path": "/api/cron",
@@ -11,7 +11,7 @@
     },
     {
       "path": "/api/cron",
-      "schedule": "*/10 0-4 * * *"
+      "schedule": "*/10 0-3 * * *"
     },
     {
       "path": "/api/gtfs/import?steps=all",
