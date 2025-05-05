@@ -8,6 +8,7 @@ import {
   determineEffectByKeywords,
 } from "@/helpers/incident";
 import { revalidatePath, revalidateTag } from "next/cache";
+import crypto from "crypto";
 
 const ALERT_URL =
   process.env.ALERT_URL ||
@@ -123,6 +124,13 @@ async function saveAlerts(feedMessage: any): Promise<void> {
   }
 }
 
+function generateUniqueAlertId(entity: any): string {
+  const headerText = entity.alert?.headerText?.translation?.[0]?.text || "";
+  const base = headerText || new Date().toISOString();
+  const hash = crypto.createHash("md5").update(base).digest("hex");
+  return `${entity.id}_${hash}`;
+}
+
 async function processAlert(entity: any): Promise<void> {
   const alert = entity.alert;
 
@@ -162,8 +170,10 @@ async function processAlert(entity: any): Promise<void> {
   const effect =
     alert.effect || determineEffectByKeywords(descriptionText, headerText);
 
+  const uniqueId = generateUniqueAlertId(entity);
+
   await prisma.alert.upsert({
-    where: { id: entity.id },
+    where: { id: uniqueId },
     update: {
       timeStart,
       timeEnd,
@@ -178,7 +188,7 @@ async function processAlert(entity: any): Promise<void> {
       isComplement: false,
     },
     create: {
-      id: entity.id,
+      id: uniqueId,
       timeStart,
       timeEnd,
       cause,
@@ -243,8 +253,10 @@ async function processComplement(entity: {
 
   const parentAlert = potentialParents[0];
 
+  const uniqueId = generateUniqueAlertId(entity);
+
   await prisma.alert.upsert({
-    where: { id: entity.id },
+    where: { id: uniqueId },
     update: {
       parentAlertId: parentAlert.id,
       timeStart,
@@ -267,7 +279,7 @@ async function processComplement(entity: {
       isComplement: true,
     },
     create: {
-      id: entity.id,
+      id: uniqueId,
       parentAlertId: parentAlert.id,
       timeStart,
       timeEnd:
@@ -295,7 +307,7 @@ async function processComplement(entity: {
   });
 
   console.log(
-    `Complément ${entity.id} lié à l'alerte parent ${parentAlert.id}`
+    `Complément ${uniqueId} lié à l'alerte parent ${parentAlert.id}`
   );
 }
 
