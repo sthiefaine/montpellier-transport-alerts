@@ -12,54 +12,6 @@
     {
       "path": "/api/cron",
       "schedule": "*/10 0-3 * * *"
-    },
-    {
-      "path": "/api/gtfs/import?steps=all",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/import/stops-list",
-      "schedule": "5 3 * * *"
-    },
-    {
-      "path": "/api/gtfs/collect-realtime",
-      "schedule": "*/1 5-23 * * *"
-    },
-    {
-      "path": "/api/gtfs/collect-realtime",
-      "schedule": "*/10 0-4 * * *"
-    },
-    {
-      "path": "/api/gtfs/weather/collect",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/update-lines",
-      "schedule": "10 1 * * *"
-    },
-    {
-      "path": "/api/gtfs/metrics/compute-daily",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/gtfs/metrics/compute-hourly",
-      "schedule": "5 * * * *"
-    },
-    {
-      "path": "/api/gtfs/metrics/compute-stop-hourly",
-      "schedule": "10 * * * *"
-    },
-    {
-      "path": "/api/gtfs/weather/analyze",
-      "schedule": "25 4 * * *"
-    },
-    {
-      "path": "/api/gtfs/cleanup-realtime",
-      "schedule": "35 4 * * *"
-    },
-    {
-      "path": "/api/gtfs/metrics/with-threshold?threshold=60",
-      "schedule": "0 5 * * 1"
     }
   ]
 }
