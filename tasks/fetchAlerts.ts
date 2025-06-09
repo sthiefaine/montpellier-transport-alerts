@@ -138,6 +138,7 @@ async function processAlert(entity: any): Promise<void> {
     console.warn(`Alerte sans description: ${entity.id}`);
     return;
   }
+  console.log(alert.timeStart);
 
   const timeRanges = alert.activePeriod || [];
   const timeStart =
